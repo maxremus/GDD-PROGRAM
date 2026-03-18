@@ -1,0 +1,136 @@
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Работени фирми</title>
+
+    <style>
+        body { font-family: Arial; background:#f4f6f9; }
+
+        .center-box {
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            gap:10px;
+            margin-bottom:20px;
+        }
+
+        form.inline {
+            display:flex;
+            gap:10px;
+        }
+
+        table {
+            width:80%;
+            margin:auto;
+            border-collapse:collapse;
+            background:white;
+        }
+
+        th, td {
+            padding:12px;
+            border-bottom:1px solid #ddd;
+            text-align:center;
+        }
+
+        th {
+            background:#007bff;
+            color:white;
+        }
+
+        .yes { background:#d4edda; }
+        .no { background:#f8d7da; }
+        .empty { background:#e2e3e5; }
+
+        button {
+            padding:8px 12px;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
+            background:#007bff;
+            color:white;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2 style="text-align:center;">✔ Работени фирми</h2>
+
+<div style="text-align:center;">
+    <a href="/companies">⬅ Назад</a>
+    <p></p>
+</div>
+
+<div class="center-box">
+
+    <!-- 🔍 ФИЛТЪР -->
+    <form method="get" action="/companies/worked" class="inline">
+
+        <select name="month">
+            <option th:each="m : ${#numbers.sequence(1,12)}"
+                    th:value="${m}"
+                    th:text="${m}"
+                    th:selected="${m == selectedMonth}">
+            </option>
+        </select>
+
+        <input type="number" name="year"
+               th:value="${selectedYear}">
+
+        <input type="text" name="search"
+               placeholder="Търси фирма..."
+               th:value="${search}">
+
+        <button type="submit">Покажи</button>
+    </form>
+
+    <!-- 📅 НОВ МЕСЕЦ -->
+    <form action="/companies/copy-month" method="post" class="inline">
+
+        <input type="hidden" name="month" th:value="${selectedMonth}">
+        <input type="hidden" name="year" th:value="${selectedYear}">
+
+        <button type="submit">📅 Нов месец</button>
+    </form>
+
+</div>
+
+<table>
+    <tr>
+        <th>Фирма</th>
+        <th>Месец</th>
+        <th>Статус</th>
+    </tr>
+
+    <tr th:each="c : ${companies}"
+        th:class="${c.statistics2 != null ? #strings.toLowerCase(c.statistics2.name()) : 'empty'}">
+
+        <td th:text="${c.name}"></td>
+
+        <td th:text="${selectedMonth}"></td>
+
+        <td>
+            <form th:action="@{/companies/update-worked}" method="post">
+                <input type="hidden" name="id" th:value="${c.id}">
+                <input type="hidden" name="month" th:value="${selectedMonth}">
+                <input type="hidden" name="year" th:value="${selectedYear}">
+
+                <select name="status" onchange="this.form.submit()">
+                    <option th:each="s : ${statuses}"
+                            th:value="${s}"
+                            th:text="${s.name() == 'YES' ? 'Да' : (s.name() == 'NO' ? 'Не' : '-----')}"
+                            th:selected="${s == c.statistics2}">
+                    </option>
+                </select>
+            </form>
+        </td>
+
+    </tr>
+
+</table>
+
+</body>
+</html>
+
