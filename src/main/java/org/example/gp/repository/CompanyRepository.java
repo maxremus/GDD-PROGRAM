@@ -27,4 +27,6 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
 
     Optional<Company> findByNameAndMonthAndYear(String name, Integer month, Integer year);
 
+    List<Company> findByNameContainingIgnoreCase(String name);
+
 }

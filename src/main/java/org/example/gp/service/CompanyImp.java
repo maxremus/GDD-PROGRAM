@@ -63,8 +63,8 @@ public class CompanyImp implements CompanyService {
     }
 
     @Override
-    public Object searchCompanies(String keyword) {
-        return companyRepository.findByNameContaining(keyword);
+    public List<Company> searchCompanies(String keyword) {
+        return companyRepository.findByNameContainingIgnoreCase(keyword);
     }
 
     @Override

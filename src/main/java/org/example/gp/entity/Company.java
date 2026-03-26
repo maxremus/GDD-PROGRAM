@@ -23,7 +23,7 @@ public class Company {
     private FilingStatus statistics;
 
     @Column(name = "reporting_year")
-    private Integer year; // Добавете това поле!
+    private Integer year;
 
     @Enumerated(EnumType.STRING)
     private FilingStatus ch73Al1;
@@ -125,4 +125,5 @@ public class Company {
     public void setDeclaration6(FilingStatus declaration6) {
         this.declaration6 = declaration6;
     }
+
 }

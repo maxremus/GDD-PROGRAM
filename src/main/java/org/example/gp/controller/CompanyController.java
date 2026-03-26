@@ -35,26 +35,6 @@ public class CompanyController {
         this.companyWorkedRepository = companyWorkedRepository;
     }
 
-    @GetMapping
-    public ModelAndView listCompanies(@RequestParam(required = false) Long editId) {
-        ModelAndView mav = new ModelAndView("index");
-
-        // Добавяме списъка с всички компании
-        mav.addObject("companies", companyService.getAllCompanies());
-
-        // Ако има ID за редактиране, добавяме тази компания към модела
-        if (editId != null) {
-            Optional<Company> companyOptional = companyService.getCompanyById(editId);
-            if (companyOptional.isPresent()) {
-                // Добавяме компанията за редактиране
-                mav.addObject("editingCompany", companyOptional.get());
-            } else {
-                mav.addObject("errorMessage", "Компанията с ID " + editId + " не е намерена.");
-            }
-        }
-
-        return mav;
-    }
 
     @PostMapping("/add")
     public ModelAndView addCompany(@ModelAttribute Company company,
@@ -161,6 +141,36 @@ public class CompanyController {
         }
 
         return "redirect:/companies";
+    }
+
+    @GetMapping
+    public ModelAndView listCompanies(
+            @RequestParam(required = false) Long editId,
+            @RequestParam(required = false) String search
+    ) {
+        ModelAndView mav = new ModelAndView("index");
+
+        List<Company> companies;
+
+        if (search != null && !search.isEmpty()) {
+            companies = (List<Company>) companyService.searchCompanies(search);
+        } else {
+            companies = companyService.getAllCompanies();
+        }
+
+        mav.addObject("companies", companies);
+        mav.addObject("search", search);
+
+        // ✅ FIX за editingCompany
+        if (editId != null) {
+            Optional<Company> companyOpt = companyRepository.findById(editId);
+
+            companyOpt.ifPresent(company ->
+                    mav.addObject("editingCompany", company)
+            );
+        }
+
+        return mav;
     }
 
 

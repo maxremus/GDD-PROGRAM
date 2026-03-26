@@ -132,7 +132,7 @@
             </div>
             <div class="card-body">
                 <!-- Формата - използваме editingCompany ако съществува, иначе празна форма -->
-                <form th:action="${editingCompany} ? '/companies/update' : '/companies/add'" method="post">
+                <form th:action="${editingCompany != null} ? @{/companies/update} : @{/companies/add}" method="post">
 
                     <!-- Скрито поле за ID при редактиране -->
                     <input type="hidden" name="id" th:value="${editingCompany?.id}" />
@@ -549,21 +549,21 @@
                             <div class="d-flex flex-wrap gap-2">
                                 <!-- Само години от 2025 нагоре -->
                                 <span class="badge current-year">2025: <span
-                                        th:text="${#lists.size(companies.![year == 2025])}">0</span></span>
+                                        th:text="${#lists.size(companies.?[year == 2025])}">0</span></span>
                                 <span class="badge future-year">2026: <span
-                                        th:text="${#lists.size(companies.![year == 2026])}">0</span></span>
+                                        th:text="${#lists.size(companies.?[year == 2026])}">0</span></span>
                                 <span class="badge future-year">2027: <span
-                                        th:text="${#lists.size(companies.![year == 2027])}">0</span></span>
+                                        th:text="${#lists.size(companies.?[year == 2027])}">0</span></span>
                                 <span class="badge future-year">2028: <span
-                                        th:text="${#lists.size(companies.![year == 2028])}">0</span></span>
+                                        th:text="${#lists.size(companies.?[year == 2028])}">0</span></span>
                                 <span class="badge future-year">2029: <span
-                                        th:text="${#lists.size(companies.![year == 2029])}">0</span></span>
+                                        th:text="${#lists.size(companies.?[year == 2029])}">0</span></span>
                                 <span class="badge future-year">2030: <span
-                                        th:text="${#lists.size(companies.![year == 2030])}">0</span></span>
+                                        th:text="${#lists.size(companies.?[year == 2030])}">0</span></span>
                                 <span class="badge bg-dark">
 
                                     Други: <span
-                                        th:text="${#lists.size(companies.![year < 2025 or year > '2030'])}">0</span>
+                                        th:text="${#lists.size(companies.?[year < 2025 or year > 2030])}">0</span>
                                 </span>
                                 <span class="badge bg-success">
                                     Обр.6: <span th:text="${#lists.size(companies.![declaration6 == true])}">0</span>
