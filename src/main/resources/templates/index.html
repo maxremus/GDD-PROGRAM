@@ -60,6 +60,9 @@
             background-color: #fff3cd !important;
             border-left: 4px solid #ffc107;
         }
+        .btn btn-primary{
+
+        }
 
     </style>
 </head>
@@ -68,9 +71,29 @@
     <div class="container mt-4">
         <h1 class="mb-4 text-center">🏢 Система за приключване на година</h1>
 
-        <form action="/companies/worked" method="get">
-            <button type="submit">✔ Работени фирми</button>
-        </form>
+        <div class="d-flex gap-3 align-items-center">
+
+            <form action="/companies/worked" method="get">
+                <button type="submit" class="btn btn-success">
+                    ✔ Работени фирми
+                </button>
+            </form>
+
+            <a th:href="@{/companies/vat}" class="btn btn-primary">
+                Калкулатор - ДДС
+            </a>
+
+            <a th:href="@{/companies/experience}" class="btn btn-secondary">
+                📅 Трудов стаж
+            </a>
+
+            <a th:href="@{/companies/net-to-gross}"
+               class="btn btn-success">
+                💰 Нетна → Брутна Заплата
+            </a>
+
+        </div>
+
 <br>
         <!-- Statistics Section -->
         <div class="row mb-4">

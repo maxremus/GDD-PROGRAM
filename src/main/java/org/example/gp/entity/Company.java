@@ -37,6 +37,17 @@ public class Company {
     @Enumerated(EnumType.STRING)
     private FilingStatus declaration6;
 
+    @Transient
+    private Long workedId;
+
+    public Long getWorkedId() {
+        return workedId;
+    }
+
+    public void setWorkedId(Long workedId) {
+        this.workedId = workedId;
+    }
+
     public FilingStatusMore getStatistics2() {
         return statistics2;
     }

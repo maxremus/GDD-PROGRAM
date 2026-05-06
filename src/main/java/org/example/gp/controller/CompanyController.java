@@ -9,6 +9,7 @@ import org.example.gp.entity.FilingStatusMore;
 import org.example.gp.repository.CompanyRepository;
 import org.example.gp.repository.CompanyWorkedRepository;
 import org.example.gp.service.CompanyService;
+import org.example.gp.service.CompanyWorkedService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,11 +29,13 @@ public class CompanyController {
     private final CompanyService companyService;
     private final CompanyRepository companyRepository;
     private final CompanyWorkedRepository companyWorkedRepository;
+    private final CompanyWorkedService companyWorkedService;
 
-    public CompanyController(CompanyService companyService, CompanyRepository companyRepository, CompanyWorkedRepository companyWorkedRepository) {
+    public CompanyController(CompanyService companyService, CompanyRepository companyRepository, CompanyWorkedRepository companyWorkedRepository, CompanyWorkedService companyWorkedService) {
         this.companyService = companyService;
         this.companyRepository = companyRepository;
         this.companyWorkedRepository = companyWorkedRepository;
+        this.companyWorkedService = companyWorkedService;
     }
 
 
@@ -161,7 +164,7 @@ public class CompanyController {
         mav.addObject("companies", companies);
         mav.addObject("search", search);
 
-        // ✅ FIX за editingCompany
+        // FIX за editingCompany
         if (editId != null) {
             Optional<Company> companyOpt = companyRepository.findById(editId);
 
@@ -188,10 +191,10 @@ public class CompanyController {
             year = now.getYear();
         }
 
-        // 👉 всички фирми
+        //  всички фирми
         List<Company> allCompanies = companyRepository.findAll();
 
-        // 🔍 search
+        //  search
         if (search != null && !search.isEmpty()) {
             allCompanies = allCompanies.stream()
                     .filter(c -> c.getName() != null &&
@@ -199,11 +202,11 @@ public class CompanyController {
                     .toList();
         }
 
-        // 👉 записите за текущия месец (НОВАТА таблица)
+        //  записите за текущия месец (НОВАТА таблица)
         List<CompanyWorked> workedList =
                 companyWorkedRepository.findAll();
 
-        // 🔥 map: companyId → worked
+        //  map: companyId → worked
         Map<Long, CompanyWorked> workedMap = new HashMap<>();
 
         for (CompanyWorked w : workedList) {
@@ -212,7 +215,7 @@ public class CompanyController {
             }
         }
 
-        // 🔥 резултат
+        //  резултат
         List<Company> result = new ArrayList<>();
 
         for (Company c : allCompanies) {
@@ -225,6 +228,7 @@ public class CompanyController {
                 temp.setId(c.getId());
                 temp.setName(c.getName());
                 temp.setStatistics2(w.getStatus());
+                temp.setWorkedId(w.getId());
 
                 result.add(temp);
 
@@ -234,6 +238,7 @@ public class CompanyController {
                 temp.setId(c.getId());
                 temp.setName(c.getName());
                 temp.setStatistics2(FilingStatusMore.EMPTY);
+                temp.setWorkedId(null);
 
                 result.add(temp);
             }
@@ -289,8 +294,20 @@ public class CompanyController {
             nextYear++;
         }
 
-        // ❌ НЕ копираме нищо
+        //  копираме нищо
 
         return "redirect:/companies/worked?month=" + nextMonth + "&year=" + nextYear;
+    }
+
+    // delete by id in Worker Company
+    @PostMapping("/worked/delete/{id}")
+    public String deleteWorked(
+            @PathVariable Long id,
+            @RequestParam Integer month,
+            @RequestParam Integer year
+    ) {
+        companyWorkedService.deleteById(id);
+
+        return "redirect:/companies?month=" + month + "&year=" + year;
     }
 }
