@@ -23,10 +23,10 @@ public class WorkExperienceService {
             return new ExperienceResult(0, 0, 0);
         }
 
-        // Сортиране
+        // SORT
         ranges.sort(Comparator.comparing(DateRange::getStart));
 
-        // Merge overlap
+        // MERGE OVERLAP
         List<DateRange> merged = new ArrayList<>();
 
         DateRange current = ranges.get(0);
@@ -35,7 +35,7 @@ public class WorkExperienceService {
 
             DateRange next = ranges.get(i);
 
-            if (!next.getStart().isAfter(current.getEnd())) {
+            if (!next.getStart().isAfter(current.getEnd().plusDays(1))) {
 
                 current = new DateRange(
                         current.getStart(),
@@ -53,24 +53,37 @@ public class WorkExperienceService {
 
         merged.add(current);
 
-        // Сумиране
         int totalYears = 0;
         int totalMonths = 0;
         int totalDays = 0;
 
         for (DateRange r : merged) {
 
-            Period p = Period.between(
-                    r.getStart(),
-                    r.getEnd().plusDays(1)
-            );
+            LocalDate start = r.getStart();
+            LocalDate end = r.getEnd();
 
-            totalYears += p.getYears();
-            totalMonths += p.getMonths();
-            totalDays += p.getDays();
+            int years = end.getYear() - start.getYear();
+            int months = end.getMonthValue() - start.getMonthValue();
+            int days = end.getDayOfMonth() - start.getDayOfMonth();
+
+            // borrow days
+            if (days < 0) {
+                days += 30;
+                months--;
+            }
+
+            // borrow months
+            if (months < 0) {
+                months += 12;
+                years--;
+            }
+
+            totalYears += years;
+            totalMonths += months;
+            totalDays += days;
         }
 
-        // Нормализация
+        // normalize
         if (totalDays >= 30) {
             totalMonths += totalDays / 30;
             totalDays = totalDays % 30;

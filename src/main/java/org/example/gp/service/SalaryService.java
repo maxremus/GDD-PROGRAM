@@ -6,32 +6,58 @@ import org.springframework.stereotype.Service;
 @Service
 public class SalaryService {
 
-    public SalaryResult calculate(double netSalary) {
+    // Служител
+    private static final double EMPLOYEE_INSURANCE = 0.1378;
 
-        double gross = netSalary / 0.779;
+    // Работодател + ТЗПБ 0.6%
+    private static final double EMPLOYER_INSURANCE = 0.1952;
 
-        double employeeInsurance = gross * 0.1378;
+    // Данък
+    private static final double TAX = 0.10;
 
-        double taxBase = gross - employeeInsurance;
+    public SalaryResult calculate(double grossSalary) {
 
-        double tax = taxBase * 0.10;
+        // Осигуровки служител
+        double employeeInsurance =
+                grossSalary * EMPLOYEE_INSURANCE;
 
-        double employerInsurance = gross * 0.1892;
+        // Облагаем доход
+        double taxableIncome =
+                grossSalary - employeeInsurance;
 
+        // Данък
+        double tax =
+                taxableIncome * TAX;
+
+        // Нетна заплата
+        double netSalary =
+                taxableIncome - tax;
+
+        // Осигуровки работодател
+        double employerInsurance =
+                grossSalary * EMPLOYER_INSURANCE;
+
+        // Общ разход
         double totalEmployerCost =
-                gross + employerInsurance;
+                grossSalary + employerInsurance;
 
         return new SalaryResult(
-                round(gross),
+
+                round(grossSalary),
+
                 round(employeeInsurance),
+
                 round(employerInsurance),
+
                 round(tax),
+
                 round(netSalary),
+
                 round(totalEmployerCost)
         );
     }
 
-    private double round(double v) {
-        return Math.round(v * 100.0) / 100.0;
+    private double round(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 }

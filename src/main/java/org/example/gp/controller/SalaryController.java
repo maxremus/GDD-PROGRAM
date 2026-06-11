@@ -26,11 +26,11 @@ public class SalaryController {
 
     @PostMapping("/net-to-gross")
     public String calculate(
-            @RequestParam double netSalary,
+            @RequestParam double grossSalary,
             Model model) {
 
         SalaryResult result =
-                salaryService.calculate(netSalary);
+                salaryService.calculate(grossSalary);
 
         model.addAttribute("result", result);
 

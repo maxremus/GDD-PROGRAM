@@ -23,4 +23,25 @@ public class CompanyWorked {
 
     @Enumerated(EnumType.STRING)
     private FilingStatusMore status;
+
+
+    public Long getId() {
+        return id;
+    }
+
+    public Company getCompany() {
+        return company;
+    }
+
+    public Integer getMonth() {
+        return month;
+    }
+
+    public Integer getYear() {
+        return year;
+    }
+
+    public FilingStatusMore getStatus() {
+        return status;
+    }
 }

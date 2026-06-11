@@ -137,4 +137,6 @@ public class Company {
         this.declaration6 = declaration6;
     }
 
+
+
 }
