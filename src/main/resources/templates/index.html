@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <head>
     <meta charset="UTF-8">
@@ -71,7 +72,7 @@
     <div class="container mt-4">
         <h1 class="mb-4 text-center">🏢 Система за приключване на година</h1>
 
-        <div class="d-flex gap-3 align-items-center">
+        <div class="d-flex gap-3 align-items-center flex-wrap">
 
             <form action="/companies/worked" method="get">
                 <button type="submit" class="btn btn-success">
@@ -91,6 +92,33 @@
                class="btn btn-success">
                 💰 Брутна → Нетна Заплата
             </a>
+
+            <!-- Собственик на кантора — управление на служители -->
+            <a sec:authorize="hasAnyRole('OFFICE','ADMIN')"
+               th:href="@{/office/staff}"
+               class="btn btn-warning">
+                👥 Служители
+            </a>
+
+            <!-- Системен admin -->
+            <a sec:authorize="hasRole('ADMIN')"
+               th:href="@{/admin/users}"
+               class="btn btn-danger">
+                🔧 Всички кантори
+            </a>
+
+            <!-- Потребителско ime + Изход -->
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <span class="text-muted small">
+                    👤 <span sec:authentication="name"></span>
+                    <span sec:authorize="hasRole('ADMIN')"  class="badge bg-danger ms-1">ADMIN</span>
+                    <span sec:authorize="hasRole('OFFICE')" class="badge ms-1 text-white" style="background:#764ba2">КАНТОРА</span>
+                    <span sec:authorize="hasRole('USER')"   class="badge bg-primary ms-1">СЛУЖИТЕЛ</span>
+                </span>
+                <form th:action="@{/logout}" method="post" class="mb-0">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">🚪 Изход</button>
+                </form>
+            </div>
 
         </div>
 

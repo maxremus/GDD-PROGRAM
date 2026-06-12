@@ -10,14 +10,13 @@ import org.example.gp.repository.CompanyRepository;
 import org.example.gp.repository.CompanyWorkedRepository;
 import org.example.gp.service.CompanyService;
 import org.example.gp.service.CompanyWorkedService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -31,128 +30,115 @@ public class CompanyController {
     private final CompanyWorkedRepository companyWorkedRepository;
     private final CompanyWorkedService companyWorkedService;
 
-    public CompanyController(CompanyService companyService, CompanyRepository companyRepository, CompanyWorkedRepository companyWorkedRepository, CompanyWorkedService companyWorkedService) {
+    public CompanyController(CompanyService companyService,
+                             CompanyRepository companyRepository,
+                             CompanyWorkedRepository companyWorkedRepository,
+                             CompanyWorkedService companyWorkedService) {
         this.companyService = companyService;
         this.companyRepository = companyRepository;
         this.companyWorkedRepository = companyWorkedRepository;
         this.companyWorkedService = companyWorkedService;
     }
 
+    // -------------------------------------------------------------------------
+    // Само ADMIN може да добавя, редактира, трие, качва фирми
+    // -------------------------------------------------------------------------
 
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICE')")
     @PostMapping("/add")
     public ModelAndView addCompany(@ModelAttribute Company company,
                                    RedirectAttributes redirectAttributes) {
         ModelAndView mav = new ModelAndView("redirect:/companies");
-
         try {
             companyService.createCompany(company);
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "Компанията е добавена успешно!");
+            redirectAttributes.addFlashAttribute("successMessage", "Компанията е добавена успешно!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage",
-                    "Грешка при добавяне на компания: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Грешка при добавяне: " + e.getMessage());
         }
-
         return mav;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICE')")
     @PostMapping("/update")
     public ModelAndView updateCompany(@ModelAttribute Company company,
                                       RedirectAttributes redirectAttributes) {
         ModelAndView mav = new ModelAndView("redirect:/companies");
-
         try {
             companyService.updateCompany(company);
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "Компанията е актуализирана успешно!");
+            redirectAttributes.addFlashAttribute("successMessage", "Компанията е актуализирана успешно!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage",
-                    "Грешка при актуализиране на компания: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Грешка при актуализиране: " + e.getMessage());
         }
-
         return mav;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICE')")
     @PostMapping("/delete/{id}")
     public ModelAndView deleteCompany(@PathVariable Long id,
                                       RedirectAttributes redirectAttributes) {
         ModelAndView mav = new ModelAndView("redirect:/companies");
-
         try {
             companyService.deleteCompany(id);
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "Компанията е изтрита успешно!");
+            redirectAttributes.addFlashAttribute("successMessage", "Компанията е изтрита успешно!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage",
-                    "Грешка при изтриване на компания: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Грешка при изтриване: " + e.getMessage());
         }
-
         return mav;
     }
 
-    @PostMapping("/companies/copy")
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICE')")
+    @PostMapping("/copy")
     public String copyToNextYear(@RequestParam String currentYear,
                                  @RequestParam String nextYear) {
-
         companyService.copyCompaniesToNextYear(currentYear, nextYear);
         return "redirect:/companies";
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICE')")
     @PostMapping("/upload")
     public String uploadCompanies(@RequestParam("file") MultipartFile file) {
-
         try {
             ObjectMapper mapper = new ObjectMapper();
-
-            List<Company> companies = mapper.readValue(
-                    file.getInputStream(),
-                    new TypeReference<List<Company>>() {}
-            );
-
+            List<Company> companies = mapper.readValue(file.getInputStream(),
+                    new TypeReference<List<Company>>() {});
             for (Company company : companies) {
-
                 company.setStatistics(FilingStatus.NOT_REQUIRED);
                 company.setCh73Al1(FilingStatus.NOT_REQUIRED);
                 company.setCh73Al6(FilingStatus.NOT_REQUIRED);
                 company.setAnnualDeclaration(FilingStatus.NOT_REQUIRED);
                 company.setDeclaration6(FilingStatus.NOT_REQUIRED);
-
                 companyRepository.save(company);
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return "redirect:/companies";
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICE')")
     @PostMapping("/import")
     public String importCompanies(@RequestParam("file") MultipartFile file) {
-
         try {
             ObjectMapper mapper = new ObjectMapper();
-
-            List<CompanyImportDto> companies =
-                    mapper.readValue(file.getInputStream(),
-                            new TypeReference<List<CompanyImportDto>>() {});
-
+            List<CompanyImportDto> companies = mapper.readValue(file.getInputStream(),
+                    new TypeReference<List<CompanyImportDto>>() {});
             companyService.importCompanies(companies);
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return "redirect:/companies";
     }
+
+    // -------------------------------------------------------------------------
+    // GET /companies — филтрирането се случва в CompanyImp.getAllCompanies()
+    // -------------------------------------------------------------------------
 
     @GetMapping
     public ModelAndView listCompanies(
             @RequestParam(required = false) Long editId,
-            @RequestParam(required = false) String search
-    ) {
-        ModelAndView mav = new ModelAndView("index");
+            @RequestParam(required = false) String search) {
 
+        ModelAndView mav = new ModelAndView("index");
         List<Company> companies;
 
         if (search != null && !search.isEmpty()) {
@@ -164,18 +150,17 @@ public class CompanyController {
         mav.addObject("companies", companies);
         mav.addObject("search", search);
 
-        // FIX за editingCompany
         if (editId != null) {
-            Optional<Company> companyOpt = companyRepository.findById(editId);
-
-            companyOpt.ifPresent(company ->
-                    mav.addObject("editingCompany", company)
-            );
+            companyRepository.findById(editId)
+                    .ifPresent(c -> mav.addObject("editingCompany", c));
         }
 
         return mav;
     }
 
+    // -------------------------------------------------------------------------
+    // GET /companies/worked — ADMIN вижда всички, USER/READONLY само своите
+    // -------------------------------------------------------------------------
 
     @GetMapping("/worked")
     public ModelAndView workedPage(
@@ -191,22 +176,17 @@ public class CompanyController {
             year = now.getYear();
         }
 
-        //  всички фирми
-        List<Company> allCompanies = companyRepository.findAll();
+        // getAllCompanies() вече е филтриран по роля
+        List<Company> allCompanies = companyService.getAllCompanies();
 
-        //  search
         if (search != null && !search.isEmpty()) {
+            final String s = search.toLowerCase();
             allCompanies = allCompanies.stream()
-                    .filter(c -> c.getName() != null &&
-                            c.getName().toLowerCase().contains(search.toLowerCase()))
+                    .filter(c -> c.getName() != null && c.getName().toLowerCase().contains(s))
                     .toList();
         }
 
-        //  записите за текущия месец (НОВАТА таблица)
-        List<CompanyWorked> workedList =
-                companyWorkedRepository.findAll();
-
-        //  map: companyId → worked
+        List<CompanyWorked> workedList = companyWorkedRepository.findAll();
         Map<Long, CompanyWorked> workedMap = new HashMap<>();
 
         for (CompanyWorked w : workedList) {
@@ -215,33 +195,22 @@ public class CompanyController {
             }
         }
 
-        //  резултат
         List<Company> result = new ArrayList<>();
-
         for (Company c : allCompanies) {
+            Company temp = new Company();
+            temp.setId(c.getId());
+            temp.setName(c.getName());
 
             if (workedMap.containsKey(c.getId())) {
-                // има статус
                 CompanyWorked w = workedMap.get(c.getId());
-
-                Company temp = new Company();
-                temp.setId(c.getId());
-                temp.setName(c.getName());
                 temp.setStatistics2(w.getStatus());
                 temp.setWorkedId(w.getId());
-
-                result.add(temp);
-
             } else {
-                // няма → EMPTY
-                Company temp = new Company();
-                temp.setId(c.getId());
-                temp.setName(c.getName());
                 temp.setStatistics2(FilingStatusMore.EMPTY);
                 temp.setWorkedId(null);
-
-                result.add(temp);
             }
+
+            result.add(temp);
         }
 
         mav.addObject("companies", result);
@@ -253,6 +222,8 @@ public class CompanyController {
         return mav;
     }
 
+    // ADMIN и USER могат да обновяват статус; READONLY — не
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICE','USER')")
     @PostMapping("/update-worked")
     public String updateWorked(@RequestParam Long id,
                                @RequestParam FilingStatusMore status,
@@ -260,54 +231,38 @@ public class CompanyController {
                                @RequestParam Integer year) {
 
         Company company = companyRepository.findById(id).orElseThrow();
-
         Optional<CompanyWorked> existing =
                 companyWorkedRepository.findByCompanyAndMonthAndYear(company, month, year);
 
-        CompanyWorked w;
-
-        if (existing.isPresent()) {
-            w = existing.get();
-        } else {
-            w = new CompanyWorked();
-            w.setCompany(company);
-            w.setMonth(month);
-            w.setYear(year);
-        }
+        CompanyWorked w = existing.orElseGet(() -> {
+            CompanyWorked newW = new CompanyWorked();
+            newW.setCompany(company);
+            newW.setMonth(month);
+            newW.setYear(year);
+            return newW;
+        });
 
         w.setStatus(status);
-
         companyWorkedRepository.save(w);
 
         return "redirect:/companies/worked?month=" + month + "&year=" + year;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICE')")
     @PostMapping("/copy-month")
-    public String copyMonth(@RequestParam Integer month,
-                            @RequestParam Integer year) {
-
+    public String copyMonth(@RequestParam Integer month, @RequestParam Integer year) {
         int nextMonth = month + 1;
         int nextYear = year;
-
-        if (nextMonth > 12) {
-            nextMonth = 1;
-            nextYear++;
-        }
-
-        //  копираме нищо
-
+        if (nextMonth > 12) { nextMonth = 1; nextYear++; }
         return "redirect:/companies/worked?month=" + nextMonth + "&year=" + nextYear;
     }
 
-    // delete by id in Worker Company
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICE')")
     @PostMapping("/worked/delete/{id}")
-    public String deleteWorked(
-            @PathVariable Long id,
-            @RequestParam Integer month,
-            @RequestParam Integer year
-    ) {
+    public String deleteWorked(@PathVariable Long id,
+                               @RequestParam Integer month,
+                               @RequestParam Integer year) {
         companyWorkedService.deleteById(id);
-
         return "redirect:/companies?month=" + month + "&year=" + year;
     }
 }

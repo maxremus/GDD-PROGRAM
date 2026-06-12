@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="bg">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -126,6 +127,18 @@
                 📅 Нов месец
             </button>
         </form>
+
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small">
+                👤 <span sec:authentication="name"></span>
+                <span sec:authorize="hasRole('ADMIN')"  class="badge bg-danger ms-1">ADMIN</span>
+                <span sec:authorize="hasRole('OFFICE')" class="badge ms-1 text-white" style="background:#764ba2">КАНТОРА</span>
+                <span sec:authorize="hasRole('USER')"   class="badge bg-primary ms-1">СЛУЖИТЕЛ</span>
+            </span>
+            <form th:action="@{/logout}" method="post" class="mb-0">
+                <button type="submit" class="btn btn-outline-danger btn-sm">🚪 Изход</button>
+            </form>
+        </div>
 
     </div>
 
