@@ -3,10 +3,10 @@ package org.example.gp.entity;
 public enum PlanType {
 
     /** До 10 фирми, до 2 служители */
-    BASIC(10, 2, "price_basic_replace_me"),
+    BASIC(10, 2, prod_UPeZSslPmIxgNj),
 
     /** До 50 фирми, до 10 служители */
-    PRO(50, 10, "price_pro_replace_me");
+    PRO(50, 10, prod_UPeZk5z8unKJWV);
 
     private final int maxCompanies;
     private final int maxStaff;
