@@ -13,22 +13,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Set;
 
 /**
- * Проверява дали кантората (ROLE_OFFICE / ROLE_USER) има активен достъп
- * (trial или платен абонамент). Ако не — пренасочва към /subscription.
- *
- * ROLE_ADMIN е изключен от проверката (системен потребител).
+ * Проверява дали кантората има активен достъп.
+ * Ако trial-ът е изтекъл → пренасочва към /subscription.
  */
 @Component
 public class SubscriptionAccessFilter extends OncePerRequestFilter {
-
-    private static final Set<String> ALLOWED_PATHS = Set.of(
-            "/login", "/logout", "/register", "/subscription",
-            "/subscription/checkout", "/subscription/success", "/subscription/cancel",
-            "/stripe/webhook", "/css", "/js", "/images"
-    );
 
     private final UserRepository userRepository;
     private final SubscriptionService subscriptionService;
@@ -46,26 +37,45 @@ public class SubscriptionAccessFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        boolean isAllowed = ALLOWED_PATHS.stream().anyMatch(path::startsWith);
-        if (isAllowed) {
+        // Пропускаме всички публични и абонаментни пътища
+        if (isAllowed(path)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-            User user = userRepository.findByUsername(auth.getName()).orElse(null);
+        User user = userRepository.findByUsername(auth.getName()).orElse(null);
 
-            if (user != null && user.getOfficeId() != null && !"ROLE_ADMIN".equals(user.getRole())) {
-                boolean hasAccess = subscriptionService.hasAccess(user.getOfficeId());
-                if (!hasAccess) {
-                    response.sendRedirect("/subscription?expired=true");
-                    return;
-                }
-            }
+        // ADMIN не се проверява — системен потребител
+        if (user == null || user.getOfficeId() == null || "ROLE_ADMIN".equals(user.getRole())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Проверяваме достъп само за кантори
+        if (!subscriptionService.hasAccess(user.getOfficeId())) {
+            response.sendRedirect("/subscription?expired=true");
+            return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isAllowed(String path) {
+        return path.startsWith("/login")
+                || path.startsWith("/logout")
+                || path.startsWith("/register")
+                || path.startsWith("/subscription")   // покрива /subscription, /subscription/checkout, /subscription/success, /subscription/cancel
+                || path.startsWith("/stripe/webhook")
+                || path.startsWith("/css")
+                || path.startsWith("/js")
+                || path.startsWith("/images")
+                || path.startsWith("/actuator")
+                || path.startsWith("/error");
     }
 }

@@ -50,6 +50,11 @@ public class SubscriptionController {
     // -------------------------------------------------------------------------
     // POST /subscription/checkout — създава Stripe Checkout сесия и редиректва
     // -------------------------------------------------------------------------
+    @GetMapping("/subscription/checkout")
+    public String checkoutGet() {
+        return "redirect:/subscription";
+    }
+
     @PostMapping("/subscription/checkout")
     public String checkout(@RequestParam PlanType plan,
                            RedirectAttributes redirectAttributes) {
