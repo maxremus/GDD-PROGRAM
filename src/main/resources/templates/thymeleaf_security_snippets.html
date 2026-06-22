@@ -1,0 +1,38 @@
+<!--
+  ============================================================
+  Thymeleaf Security фрагменти за index.html
+  ============================================================
+  Добавете в <html> тага:
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+
+  И добавете в pom.xml:
+    <dependency>
+        <groupId>org.thymeleaf.extras</groupId>
+        <artifactId>thymeleaf-extras-springsecurity6</artifactId>
+    </dependency>
+  ============================================================
+-->
+
+<!-- Показва потребителско ime и бутон Изход (горе вдясно в navbar) -->
+<div class="d-flex align-items-center gap-3">
+    <span class="text-muted">
+        👤 <span sec:authentication="name">потребител</span>
+        <span sec:authorize="hasRole('ADMIN')" class="badge bg-danger ms-1">ADMIN</span>
+        <span sec:authorize="hasRole('USER')" class="badge bg-primary ms-1">USER</span>
+        <span sec:authorize="hasRole('READONLY')" class="badge bg-secondary ms-1">READONLY</span>
+    </span>
+    <form th:action="@{/logout}" method="post">
+        <button type="submit" class="btn btn-outline-danger btn-sm">🚪 Изход</button>
+    </form>
+</div>
+
+<!-- Скрива бутоните за Добавяне/Изтриване/Редактиране от READONLY -->
+<div sec:authorize="hasAnyRole('ADMIN')">
+    <button class="btn btn-primary">➕ Добави фирма</button>
+    <button class="btn btn-danger">🗑 Изтрий</button>
+</div>
+
+<!-- Показва различно съобщение при READONLY -->
+<div sec:authorize="hasRole('READONLY')" class="alert alert-info">
+    ℹ️ Режим само за четене. Нямате права за промени.
+</div>

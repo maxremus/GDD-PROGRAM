@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Абонамент</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f6fb; }
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border-radius: 14px;
+            padding: 24px 30px; margin-bottom: 28px;
+        }
+        .trial-banner {
+            border-radius: 12px; padding: 16px 22px;
+            font-weight: 500; margin-bottom: 24px;
+        }
+        .trial-active { background: #fff3cd; border: 1.5px solid #ffe69c; color: #664d03; }
+        .trial-expired { background: #f8d7da; border: 1.5px solid #f5c2c7; color: #842029; }
+
+        .plan-card {
+            border: 2px solid #e9ecef; border-radius: 16px;
+            padding: 32px; height: 100%;
+            transition: transform .2s, box-shadow .2s;
+            background: white;
+        }
+        .plan-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,.1); }
+        .plan-card.featured { border-color: #764ba2; position: relative; }
+        .plan-card.featured::before {
+            content: "Препоръчан"; position: absolute; top: -14px; left: 50%;
+            transform: translateX(-50%); background: #764ba2; color: white;
+            padding: 4px 16px; border-radius: 20px; font-size: .78rem; font-weight: 600;
+        }
+        .plan-name { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+        .plan-price { font-size: 2.2rem; font-weight: 800; color: #333; }
+        .plan-price span { font-size: 1rem; font-weight: 400; color: #888; }
+        .plan-features { list-style: none; padding: 0; margin: 24px 0; }
+        .plan-features li { padding: 8px 0; color: #555; }
+        .plan-features li::before { content: "✓ "; color: #28a745; font-weight: 700; }
+        .btn-plan {
+            border-radius: 10px; padding: 12px; font-weight: 600; width: 100%;
+        }
+        .current-badge { background: #28a745; color: white; padding: 4px 12px;
+            border-radius: 20px; font-size: .8rem; font-weight: 600; }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0 fw-bold">💳 Абонамент и плащане</h4>
+            <small class="opacity-75">Изберете план за вашата кантора</small>
+        </div>
+        <a th:href="@{/companies}" class="btn btn-light btn-sm">⬅ Назад</a>
+    </div>
+
+    <div th:if="${errorMessage}" class="alert alert-danger">
+        ❌ <span th:text="${errorMessage}"></span>
+    </div>
+
+    <!-- Trial статус -->
+    <div th:if="${subscription != null and subscription.status.name() == 'TRIAL'}"
+         th:class="${daysLeft > 0} ? 'trial-banner trial-active' : 'trial-banner trial-expired'">
+        <span th:if="${daysLeft > 0}">
+            ⏳ Вашият безплатен пробен период изтича след <strong th:text="${daysLeft}"></strong> дни.
+            Изберете план по-долу за да продължите без прекъсване.
+        </span>
+        <span th:if="${daysLeft == 0}">
+            ⚠️ Безплатният пробен период е изтекъл. Изберете план за да продължите да ползвате системата.
+        </span>
+    </div>
+
+    <div th:if="${subscription != null and subscription.status.name() == 'ACTIVE'}"
+         class="trial-banner" style="background:#d1e7dd;border:1.5px solid #a3cfbb;color:#0f5132;">
+        ✅ Имате активен абонамент: <strong th:text="${subscription.plan}"></strong>
+    </div>
+
+    <div th:if="${subscription != null and subscription.status.name() == 'PAST_DUE'}"
+         class="trial-banner trial-expired">
+        ⚠️ Плащането не е успешно. Моля обновете данните си за плащане.
+    </div>
+
+    <!-- Планове -->
+    <div class="row g-4 mt-2">
+
+        <div class="col-md-6">
+            <div class="plan-card">
+                <div class="plan-name">📦 Basic</div>
+                <div class="text-muted mb-3">За малки кантори</div>
+                <div class="plan-price">29 лв<span> / месец</span></div>
+                <ul class="plan-features">
+                    <li>До 10 фирми</li>
+                    <li>До 2 служители</li>
+                    <li>Всички основни функции</li>
+                    <li>Имейл поддръжка</li>
+                </ul>
+                <form th:action="@{/subscription/checkout}" method="post">
+                    <input type="hidden" name="plan" value="BASIC">
+                    <button type="submit" class="btn btn-outline-primary btn-plan">
+                        Избери Basic
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="plan-card featured">
+                <div class="plan-name">🚀 Pro</div>
+                <div class="text-muted mb-3">За растящи кантори</div>
+                <div class="plan-price">79 лв<span> / месец</span></div>
+                <ul class="plan-features">
+                    <li>До 50 фирми</li>
+                    <li>До 10 служители</li>
+                    <li>Всички функции на Basic</li>
+                    <li>Приоритетна поддръжка</li>
+                </ul>
+                <form th:action="@{/subscription/checkout}" method="post">
+                    <input type="hidden" name="plan" value="PRO">
+                    <button type="submit" class="btn text-white btn-plan"
+                            style="background:linear-gradient(135deg,#667eea,#764ba2);border:none;">
+                        Избери Pro
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center text-muted small mt-4">
+        🔒 Плащанията се обработват сигурно през Stripe. Можете да прекратите абонамента си по всяко време.
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Company Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .checkbox-group {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .form-check-input:checked {
+            background-color: #667eea;
+            border-color: #667eea;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+
+        .year-select {
+            max-width: 200px;
+        }
+
+        .year-badge {
+            font-size: 0.9rem;
+            padding: 5px 10px;
+        }
+
+        .future-year {
+    background-color: white !important;
+    color: black;
+}
+
+        .current-year {
+            background-color: #f7f8f9 !important;
+            color: #1c1b1b;
+        }
+
+        .editing-highlight {
+            background-color: #fff3cd !important;
+            border-left: 4px solid #ffc107;
+        }
+        .btn btn-primary{
+
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4 text-center">🏢 Система за приключване на година</h1>
+
+        <div class="d-flex gap-3 align-items-center flex-wrap">
+
+            <form action="/companies/worked" method="get">
+                <button type="submit" class="btn btn-success">
+                    ✔ Работени фирми
+                </button>
+            </form>
+
+            <a th:href="@{/companies/vat}" class="btn btn-primary">
+                Калкулатор - ДДС
+            </a>
+
+            <a th:href="@{/companies/experience}" class="btn btn-secondary">
+                📅 Трудов стаж
+            </a>
+
+            <a th:href="@{/companies/net-to-gross}"
+               class="btn btn-success">
+                💰 Брутна → Нетна Заплата
+            </a>
+
+            <!-- Собственик на кантора — управление на служители -->
+            <a sec:authorize="hasAnyRole('OFFICE','ADMIN')"
+               th:href="@{/office/staff}"
+               class="btn btn-warning">
+                👥 Служители
+            </a>
+
+            <!-- Абонамент — за кантора и служители -->
+            <a sec:authorize="hasAnyRole('OFFICE','USER')"
+               th:href="@{/subscription}"
+               class="btn btn-info">
+                💳 Абонамент
+            </a>
+
+            <!-- Системен admin -->
+            <a sec:authorize="hasRole('ADMIN')"
+               th:href="@{/admin/users}"
+               class="btn btn-danger">
+                🔧 Всички кантори
+            </a>
+
+            <!-- Потребителско ime + Изход -->
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <span class="text-muted small">
+                    👤 <span sec:authentication="name"></span>
+                    <span sec:authorize="hasRole('ADMIN')"  class="badge bg-danger ms-1">ADMIN</span>
+                    <span sec:authorize="hasRole('OFFICE')" class="badge ms-1 text-white" style="background:#764ba2">КАНТОРА</span>
+                    <span sec:authorize="hasRole('USER')"   class="badge bg-primary ms-1">СЛУЖИТЕЛ</span>
+                </span>
+                <form th:action="@{/logout}" method="post" class="mb-0">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">🚪 Изход</button>
+                </form>
+            </div>
+
+        </div>
+
+<br>
+        <!-- Statistics Section -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="stats-card">
+                    <h4 class="text-white mb-3">📊 Фирми - Година:
+                        <span class="badge bg-light text-dark" id="current-year-display">2025</span>
+                    </h4>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <strong>Общо фирми:</strong>
+                                <span class="badge bg-light text-dark fs-5" th:text="${#lists.size(companies)}">0</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <strong>Статистика:</strong>
+                                <span class="badge bg-light text-dark fs-5"
+                                      th:text="${#lists.size(companies.?[statistics == T(org.example.gp.entity.FilingStatus).SUBMITTED])}">0</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <strong>чл.73 ал.1:</strong>
+                                <span class="badge bg-light text-dark fs-5"
+                                      th:text="${#lists.size(companies.?[ch73Al1 == T(org.example.gp.entity.FilingStatus).SUBMITTED])}">0</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <strong>ГДД:</strong>
+                                <span class="badge bg-light text-dark fs-5"
+                                      th:text="${#lists.size(companies.?[annualDeclaration == T(org.example.gp.entity.FilingStatus).SUBMITTED])}">0</span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="stat-item">
+                                <strong>Обр. 6:</strong>
+                                <span class="badge bg-light text-dark fs-5"
+                                      th:text="${#lists.size(companies.?[declaration6 == T(org.example.gp.entity.FilingStatus).SUBMITTED])}">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Company Form -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <!-- Показваме дали редактираме или добавяме нова фирма -->
+                    <span th:if="${editingCompany}">✏️ Редактиране на фирма: <span
+                            th:text="${editingCompany.name}"></span></span>
+                    <span th:unless="${editingCompany}">➕ Добавяне на нова фирма</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Формата - използваме editingCompany ако съществува, иначе празна форма -->
+                <form th:action="${editingCompany != null} ? @{/companies/update} : @{/companies/add}" method="post">
+
+                    <!-- Скрито поле за ID при редактиране -->
+                    <input type="hidden" name="id" th:value="${editingCompany?.id}" />
+
+                    <div class="row g-3">
+                        <!-- Company Name -->
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">Име на фирма *</label>
+                            <input type="text" name="name" class="form-control" placeholder="Въведете име на фирма"
+                                th:value="${editingCompany?.name}" required>
+                        </div>
+
+                        <!-- Year Selection -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Година *</label>
+                            <select name="year" class="form-select year-select" required id="year-select">
+                                <option value="">-- Изберете година --</option>
+                                <!-- Бъдещи години -->
+                                <option value="2030" th:selected="${editingCompany?.year == 2030}">2030</option>
+                                <option value="2029" th:selected="${editingCompany?.year == 2029}">2029</option>
+                                <option value="2028" th:selected="${editingCompany?.year == 2028}">2028</option>
+                                <option value="2027" th:selected="${editingCompany?.year == 2027}">2027</option>
+                                <option value="2026" th:selected="${editingCompany?.year == 2026}">2026</option>
+                                <option value="2025"
+                                    th:selected="${editingCompany?.year == 2025 or editingCompany?.year == null}">2025
+                                </option>
+                            </select>
+                            <small class="text-muted">* Всички години са 2025 и по-нови</small>
+                        </div>
+
+                        <div class="col-md-12">
+
+                            <div class="row g-4">
+
+                                <!-- 📈 Статистика -->
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded bg-light">
+                                        <label class="fw-bold d-block mb-2">📈 Статистика</label>
+                                        <div class="d-flex gap-3 flex-wrap">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="statistics"
+                                                       value="NOT_REQUIRED"
+                                                       th:checked="${editingCompany?.statistics == T(org.example.gp.entity.FilingStatus).NOT_REQUIRED}">
+                                                <label class="form-check-label">🚫 Не се подава</label>
+                                            </div>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="statistics"
+                                                       value="PENDING"
+                                                       th:checked="${editingCompany?.statistics == T(org.example.gp.entity.FilingStatus).PENDING}">
+                                                <label class="form-check-label">⏳ Чака подаване</label>
+                                            </div>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="statistics"
+                                                       value="SUBMITTED"
+                                                       th:checked="${editingCompany?.statistics == T(org.example.gp.entity.FilingStatus).SUBMITTED}">
+                                                <label class="form-check-label">✅ Подадена</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 📑 чл.73 ал.1 -->
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded bg-light">
+                                        <label class="fw-bold d-block mb-2">📑 чл.73 ал.1</label>
+                                        <div class="d-flex gap-3 flex-wrap">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="ch73Al1"
+                                                       value="NOT_REQUIRED"
+                                                       th:checked="${editingCompany?.ch73Al1 == T(org.example.gp.entity.FilingStatus).NOT_REQUIRED}">
+                                                <label class="form-check-label">🚫 Не се подава</label>
+                                            </div>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="ch73Al1"
+                                                       value="PENDING"
+                                                       th:checked="${editingCompany?.ch73Al1 == T(org.example.gp.entity.FilingStatus).PENDING}">
+                                                <label class="form-check-label">⏳ Чака подаване</label>
+                                            </div>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="ch73Al1"
+                                                       value="SUBMITTED"
+                                                       th:checked="${editingCompany?.ch73Al1 == T(org.example.gp.entity.FilingStatus).SUBMITTED}">
+                                                <label class="form-check-label">✅ Подадена</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 📋 чл.73 ал.6 -->
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded bg-light">
+                                        <label class="fw-bold d-block mb-2">📋 чл.73 ал.6</label>
+                                        <div class="d-flex gap-3 flex-wrap">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="ch73Al6"
+                                                       value="NOT_REQUIRED"
+                                                       th:checked="${editingCompany?.ch73Al6 == T(org.example.gp.entity.FilingStatus).NOT_REQUIRED}">
+                                                <label class="form-check-label">🚫 Не се подава</label>
+                                            </div>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="ch73Al6"
+                                                       value="PENDING"
+                                                       th:checked="${editingCompany?.ch73Al6 == T(org.example.gp.entity.FilingStatus).PENDING}">
+                                                <label class="form-check-label">⏳ Чака подаване</label>
+                                            </div>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="ch73Al6"
+                                                       value="SUBMITTED"
+                                                       th:checked="${editingCompany?.ch73Al6 == T(org.example.gp.entity.FilingStatus).SUBMITTED}">
+                                                <label class="form-check-label">✅ Подадена</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 📊 ГДД -->
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded bg-light">
+                                        <label class="fw-bold d-block mb-2">📊 ГДД</label>
+                                        <div class="d-flex gap-3 flex-wrap">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="annualDeclaration"
+                                                       value="NOT_REQUIRED"
+                                                       th:checked="${editingCompany?.annualDeclaration == T(org.example.gp.entity.FilingStatus).NOT_REQUIRED}">
+                                                <label class="form-check-label">🚫 Не се подава</label>
+                                            </div>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="annualDeclaration"
+                                                       value="PENDING"
+                                                       th:checked="${editingCompany?.annualDeclaration == T(org.example.gp.entity.FilingStatus).PENDING}">
+                                                <label class="form-check-label">⏳ Чака подаване</label>
+                                            </div>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="annualDeclaration"
+                                                       value="SUBMITTED"
+                                                       th:checked="${editingCompany?.annualDeclaration == T(org.example.gp.entity.FilingStatus).SUBMITTED}">
+                                                <label class="form-check-label">✅ Подадена</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 📄 Декларация 6 -->
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded bg-light">
+                                        <label class="fw-bold d-block mb-2">📄 Декларация 6</label>
+                                        <div class="d-flex gap-3 flex-wrap">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="declaration6"
+                                                       value="NOT_REQUIRED"
+                                                       th:checked="${editingCompany?.declaration6 == T(org.example.gp.entity.FilingStatus).NOT_REQUIRED}">
+                                                <label class="form-check-label">🚫 Не се подава</label>
+                                            </div>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="declaration6"
+                                                       value="PENDING"
+                                                       th:checked="${editingCompany?.declaration6 == T(org.example.gp.entity.FilingStatus).PENDING}">
+                                                <label class="form-check-label">⏳ Чака подаване</label>
+                                            </div>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio"
+                                                       name="declaration6"
+                                                       value="SUBMITTED"
+                                                       th:checked="${editingCompany?.declaration6 == T(org.example.gp.entity.FilingStatus).SUBMITTED}">
+                                                <label class="form-check-label">✅ Подадена</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        </form>
+
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h5>📂 Импорт на фирми (JSON)</h5>
+
+                                <form th:action="@{/companies/import}"
+													method="post"
+													enctype="multipart/form-data">
+
+                                    <div class="input-group">
+                                        <input type="file"
+                                               name="file"
+                                               class="form-control"
+                                               accept=".json"
+                                               required>
+
+                                        <button class="btn btn-success" type="submit">
+                                            ⬆️ Импорт
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+
+                    <!-- Form Buttons -->
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <span th:if="${editingCompany}">💾 Актуализиране на фирма</span>
+                            <span th:unless="${editingCompany}">➕ Добавете фирма</span>
+                        </button>
+
+                        <button type="reset" class="btn btn-secondary btn-lg ms-2">
+                            🔄 Изчистване на формуляра
+                        </button>
+
+                        <a th:if="${editingCompany}" href="/companies" class="btn btn-warning btn-lg ms-2">
+                            ❌ Отказ Редактиране
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Year Filter Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">📅 Филтър по година</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="btn-group" role="group" id="year-filter-group">
+                            <button type="button" class="btn btn-outline-primary year-filter-btn active"
+                                data-year="all">Всички години</button>
+                            <!-- Само години от 2025 нагоре -->
+                            <button type="button" class="btn btn-outline-primary year-filter-btn"
+                                data-year="2025">2025</button>
+                            <button type="button" class="btn btn-outline-success year-filter-btn"
+                                data-year="2026">2026</button>
+                            <button type="button" class="btn btn-outline-success year-filter-btn"
+                                data-year="2027">2027</button>
+                            <button type="button" class="btn btn-outline-success year-filter-btn"
+                                data-year="2028">2028</button>
+                            <button type="button" class="btn btn-outline-success year-filter-btn"
+                                data-year="2029">2029</button>
+                            <button type="button" class="btn btn-outline-success year-filter-btn"
+                                data-year="2030">2030</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Търсене по име..." id="search-input">
+                            <button class="btn btn-outline-secondary" type="button" id="search-btn">Търси</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted">Показване на: <span id="filter-info">Всички фирми</span></small>
+                    <!-- Показваме коя фирма редактираме -->
+                    <span th:if="${editingCompany}" class="badge bg-warning ms-2">
+                        ⚠️ Редактирате: <span th:text="${editingCompany.name}"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Companies List -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">📋 Фирми списък
+                    <span class="badge bg-info" id="year-filter-badge">Всички години</span>
+                </h5>
+                <div>
+                    <span class="badge bg-primary fs-6">
+                        Общо: <span th:text="${#lists.size(companies)}">0</span>
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Companies Table -->
+                <div th:if="${companies != null and !companies.isEmpty()}">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="companies-table">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>№</th>
+                                    <th>Име на фирма</th>
+                                    <th>Година</th>
+                                    <th>Статистика</th>
+                                    <th>чл. 73 ал.1</th>
+                                    <th>чл. 73 ал.6</th>
+                                    <th>ГДД</th>
+                                    <th>Обр. 6</th>
+                                    <th class="text-center">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="company : ${companies}"
+                                th:class="${editingCompany?.id == company.id} ? 'editing-highlight' : ''">
+
+                                <td th:text="${company.id}"></td>
+                                <td th:text="${company.name}"></td>
+
+                                <!-- ГОДИНА -->
+                                <td>
+        <span th:if="${company.year}"
+              class="badge year-badge"
+              th:class="${company.year == 2025} ? 'current-year' : 'future-year'"
+              th:text="${company.year}">
+        </span>
+                                </td>
+
+                                <!-- 📈 Статистика -->
+                                <td>
+        <span th:if="${company.statistics == T(org.example.gp.entity.FilingStatus).NOT_REQUIRED}"
+              class="badge bg-secondary">🚫 Не се подава</span>
+
+                                    <span th:if="${company.statistics == T(org.example.gp.entity.FilingStatus).PENDING}"
+                                          class="badge bg-warning text-dark">⏳ Чака подаване</span>
+
+                                    <span th:if="${company.statistics == T(org.example.gp.entity.FilingStatus).SUBMITTED}"
+                                          class="badge bg-success">✅ Подадена</span>
+                                </td>
+
+                                <!-- 📑 чл.73 ал.1 -->
+                                <td>
+        <span th:if="${company.ch73Al1 == T(org.example.gp.entity.FilingStatus).NOT_REQUIRED}"
+              class="badge bg-secondary">🚫 Не се подава</span>
+
+                                    <span th:if="${company.ch73Al1 == T(org.example.gp.entity.FilingStatus).PENDING}"
+                                          class="badge bg-warning text-dark">⏳ Чака подаване</span>
+
+                                    <span th:if="${company.ch73Al1 == T(org.example.gp.entity.FilingStatus).SUBMITTED}"
+                                          class="badge bg-success">✅ Подадена</span>
+                                </td>
+
+                                <!-- 📋 чл.73 ал.6 -->
+                                <td>
+        <span th:if="${company.ch73Al6 == T(org.example.gp.entity.FilingStatus).NOT_REQUIRED}"
+              class="badge bg-secondary">🚫 Не се подава</span>
+
+                                    <span th:if="${company.ch73Al6 == T(org.example.gp.entity.FilingStatus).PENDING}"
+                                          class="badge bg-warning text-dark">⏳ Чака подаване</span>
+
+                                    <span th:if="${company.ch73Al6 == T(org.example.gp.entity.FilingStatus).SUBMITTED}"
+                                          class="badge bg-success">✅ Подадена</span>
+                                </td>
+
+                                <!-- 📊 ГДД -->
+                                <td>
+        <span th:if="${company.annualDeclaration == T(org.example.gp.entity.FilingStatus).NOT_REQUIRED}"
+              class="badge bg-secondary">🚫 Не се подава</span>
+
+                                    <span th:if="${company.annualDeclaration == T(org.example.gp.entity.FilingStatus).PENDING}"
+                                          class="badge bg-warning text-dark">⏳ Чака подаване</span>
+
+                                    <span th:if="${company.annualDeclaration == T(org.example.gp.entity.FilingStatus).SUBMITTED}"
+                                          class="badge bg-success">✅ Подадена</span>
+                                </td>
+
+                                <!-- 📄 Обр.6 -->
+                                <td>
+        <span th:if="${company.declaration6 == T(org.example.gp.entity.FilingStatus).NOT_REQUIRED}"
+              class="badge bg-secondary">🚫 Не се подава</span>
+
+                                    <span th:if="${company.declaration6 == T(org.example.gp.entity.FilingStatus).PENDING}"
+                                          class="badge bg-warning text-dark">⏳ Чака подаване</span>
+
+                                    <span th:if="${company.declaration6 == T(org.example.gp.entity.FilingStatus).SUBMITTED}"
+                                          class="badge bg-success">✅ Подадена</span>
+                                </td>
+
+                                <!-- ДЕЙСТВИЯ -->
+                                <td class="text-center">
+                                    <a th:href="@{/companies(editId=${company.id})}"
+                                       class="btn btn-sm btn-warning me-1">
+                                        ✏️
+                                    </a>
+
+                                    <form th:action="@{/companies/delete/{id}(id=${company.id})}"
+                                          method="post"
+                                          class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                                    </form>
+                                </td>
+
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Year Summary -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <h6>📊 Разпределение по години (2025-2030):</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                <!-- Само години от 2025 нагоре -->
+                                <span class="badge current-year">2025: <span
+                                        th:text="${#lists.size(companies.?[year == 2025])}">0</span></span>
+                                <span class="badge future-year">2026: <span
+                                        th:text="${#lists.size(companies.?[year == 2026])}">0</span></span>
+                                <span class="badge future-year">2027: <span
+                                        th:text="${#lists.size(companies.?[year == 2027])}">0</span></span>
+                                <span class="badge future-year">2028: <span
+                                        th:text="${#lists.size(companies.?[year == 2028])}">0</span></span>
+                                <span class="badge future-year">2029: <span
+                                        th:text="${#lists.size(companies.?[year == 2029])}">0</span></span>
+                                <span class="badge future-year">2030: <span
+                                        th:text="${#lists.size(companies.?[year == 2030])}">0</span></span>
+                                <span class="badge bg-dark">
+
+                                    Други: <span
+                                        th:text="${#lists.size(companies.?[year < 2025 or year > 2030])}">0</span>
+                                </span>
+                                <span class="badge bg-success">
+                                    Обр.6: <span th:text="${#lists.size(companies.![declaration6 == true])}">0</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-4 pt-3 border-top text-center text-muted">
+            <p>Система за управление на фирми за годишно приключване | Общо компании: <span
+                    th:text="${#lists.size(companies)}" class="fw-bold"></span></p>
+            <small>Доступни години: 2025-2030</small>
+        </footer>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Auto-focus on company name field when editing
+            const nameInput = document.querySelector('input[name="name"]');
+            if (nameInput) {
+                nameInput.focus();
+                // Избираме целия текст при редактиране
+                if (nameInput.value) {
+                    nameInput.select();
+                }
+            }
+
+            // Year filter functionality
+            const yearFilterButtons = document.querySelectorAll('.year-filter-btn');
+            const yearFilterBadge = document.getElementById('year-filter-badge');
+            const filterInfo = document.getElementById('filter-info');
+            const searchInput = document.getElementById('search-input');
+            const searchBtn = document.getElementById('search-btn');
+            const companiesTable = document.getElementById('companies-table');
+
+            yearFilterButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const year = this.getAttribute('data-year');
+
+                    // Update active button
+                    yearFilterButtons.forEach(btn => {
+                        btn.classList.remove('active');
+                        const yearValue = btn.getAttribute('data-year');
+
+                        // Reset to original colors
+                        if (yearValue === 'all') {
+                            btn.className = 'btn btn-outline-primary year-filter-btn';
+                        } else if (yearValue === '2025') {
+                            btn.className = 'btn btn-outline-primary year-filter-btn';
+                        } else {
+                            btn.className = 'btn btn-outline-success year-filter-btn';
+                        }
+                    });
+
+                    // Set active state with appropriate color
+                    this.classList.add('active');
+                    if (year === 'all') {
+                        this.className = 'btn btn-primary year-filter-btn active';
+                    } else if (year === '2025') {
+                        this.className = 'btn btn-primary year-filter-btn active';
+                    } else {
+                        this.className = 'btn btn-success year-filter-btn active';
+                    }
+
+                    // Update badge and filter info
+                    if (year === 'all') {
+                        yearFilterBadge.textContent = 'Всички години';
+                        yearFilterBadge.className = 'badge bg-info';
+                        filterInfo.textContent = 'Всички фирми';
+                    } else {
+                        yearFilterBadge.textContent = `Година: ${year}`;
+                        // Set badge color based on year
+                        if (year === '2025') {
+                            yearFilterBadge.className = 'badge current-year';
+                        } else {
+                            yearFilterBadge.className = 'badge future-year';
+                        }
+                        filterInfo.textContent = `Фирми за ${year} година`;
+                    }
+
+                    // Filter table rows (client-side filtering)
+                    if (companiesTable) {
+                        const rows = companiesTable.querySelectorAll('tbody tr');
+                        rows.forEach(row => {
+                            const yearCell = row.querySelector('td:nth-child(3)');
+                            const yearBadge = yearCell ? yearCell.querySelector('.badge') : null;
+                            const yearText = yearBadge ? yearBadge.textContent.trim() : '';
+
+                            if (year === 'all' || yearText === year) {
+                                row.style.display = '';
+                            } else {
+                                row.style.display = 'none';
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Search functionality
+            if (searchBtn && searchInput && companiesTable) {
+                searchBtn.addEventListener('click', function () {
+                    const searchTerm = searchInput.value.toLowerCase();
+                    const rows = companiesTable.querySelectorAll('tbody tr');
+                    let visibleCount = 0;
+
+                    rows.forEach(row => {
+                        const nameCell = row.querySelector('td:nth-child(2)');
+                        const nameText = nameCell ? nameCell.textContent.toLowerCase() : '';
+
+                        if (nameText.includes(searchTerm)) {
+                            row.style.display = '';
+                            visibleCount++;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+
+                    filterInfo.textContent = `Намерени: ${visibleCount} фирми`;
+                });
+
+                // Search on Enter key
+                searchInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        searchBtn.click();
+                    }
+                });
+            }
+
+            // Set "All years" as active filter initially (already active in HTML)
+            const allYearsBtn = document.querySelector('.year-filter-btn[data-year="all"]');
+            if (allYearsBtn) {
+                allYearsBtn.click();
+            }
+
+            // Auto-scroll to form when editing
+            if (window.location.search.includes('editId')) {
+                const formCard = document.querySelector('.card.mb-4');
+                if (formCard) {
+                    setTimeout(() => {
+                        formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

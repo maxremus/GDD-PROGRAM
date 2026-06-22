@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Регистрация на кантора</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 460px;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px 20px 0 0 !important;
+            padding: 28px 32px 22px;
+            border: none;
+        }
+        .card-body { padding: 32px; background: #fff; border-radius: 0 0 20px 20px; }
+        .form-control, .form-select {
+            border-radius: 10px;
+            padding: 12px 14px;
+            border: 1.5px solid #e0e0e0;
+            transition: border-color .2s;
+        }
+        .form-control:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,.15); }
+        .btn-register {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none; border-radius: 10px;
+            padding: 13px; font-size: 1rem; font-weight: 600;
+            letter-spacing: .02em;
+        }
+        .btn-register:hover { opacity: .9; transform: translateY(-1px); }
+        .divider { color: #aaa; font-size: .85rem; text-align: center; margin: 18px 0; }
+        .login-link { color: #667eea; font-weight: 500; text-decoration: none; }
+        .login-link:hover { text-decoration: underline; }
+        label { font-weight: 500; font-size: .9rem; color: #444; }
+        .pw-wrap { position: relative; }
+        .pw-wrap .toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: #aaa; cursor: pointer; }
+        .badge-info-box {
+            background: #f0f4ff; border-left: 4px solid #667eea;
+            border-radius: 8px; padding: 12px 14px; font-size: .84rem; color: #444;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="card-header text-white">
+        <div class="d-flex align-items-center gap-3 mb-1">
+            <span style="font-size:2rem;">🏛️</span>
+            <div>
+                <h4 class="mb-0 fw-bold">Регистрация на кантора</h4>
+                <small class="opacity-75">Създайте акаунт за вашата счетоводна кантора</small>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+
+        <div th:if="${successMessage}" class="alert alert-success py-2 mb-3">
+            ✅ <span th:text="${successMessage}"></span>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger py-2 mb-3">
+            ❌ <span th:text="${errorMessage}"></span>
+        </div>
+
+        <form th:action="@{/register}" th:object="${registerDto}" method="post">
+
+            <div class="mb-3">
+                <label>🏢 Наименование на кантората</label>
+                <input type="text" th:field="*{officeName}" class="form-control mt-1"
+                       placeholder="напр. Кантора Иванов ЕООД" required>
+                <div class="form-text">Това е показното ime на вашата кантора в системата.</div>
+            </div>
+
+            <div class="mb-3">
+                <label>👤 Потребителско ime (за вход)</label>
+                <input type="text" th:field="*{username}" class="form-control mt-1"
+                       placeholder="напр. kantora_ivanov" required>
+            </div>
+
+            <div class="mb-3">
+                <label>🔑 Парола</label>
+                <div class="pw-wrap">
+                    <input type="password" id="pw1" th:field="*{password}" class="form-control mt-1"
+                           placeholder="Минимум 6 символа" minlength="6" required>
+                    <button type="button" class="toggle" onclick="togglePw('pw1',this)">👁</button>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label>🔑 Потвърди парола</label>
+                <div class="pw-wrap">
+                    <input type="password" id="pw2" th:field="*{confirmPassword}" class="form-control mt-1"
+                           placeholder="Повтори паролата" minlength="6" required>
+                    <button type="button" class="toggle" onclick="togglePw('pw2',this)">👁</button>
+                </div>
+            </div>
+
+            <div class="badge-info-box mb-4">
+                ℹ️ След регистрация получавате <strong>пълен достъп</strong> до вашите фирми.
+                Можете да добавяте служители от менюто <strong>Служители</strong>.
+            </div>
+
+            <div class="d-grid">
+                <button type="submit" class="btn text-white btn-register">
+                    ✅ Регистрирай кантора
+                </button>
+            </div>
+        </form>
+
+        <div class="divider">— или —</div>
+        <div class="text-center">
+            Вече имате акаунт?
+            <a th:href="@{/login}" class="login-link">Влезте тук →</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function togglePw(id, btn) {
+    const el = document.getElementById(id);
+    el.type = el.type === 'password' ? 'text' : 'password';
+    btn.textContent = el.type === 'password' ? '👁' : '🙈';
+}
+document.querySelector('form').addEventListener('submit', function(e) {
+    const p1 = document.getElementById('pw1').value;
+    const p2 = document.getElementById('pw2').value;
+    if (p1 !== p2) { e.preventDefault(); alert('Паролите не съвпадат!'); }
+});
+</script>
+</body>
+</html>
