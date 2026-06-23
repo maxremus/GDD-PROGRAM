@@ -67,7 +67,8 @@ public class SubscriptionAccessFilter extends OncePerRequestFilter {
     }
 
     private boolean isAllowed(String path) {
-        return path.startsWith("/login")
+        return path.equals("/")
+                || path.startsWith("/login")
                 || path.startsWith("/logout")
                 || path.startsWith("/register")
                 || path.startsWith("/subscription")   // покрива /subscription, /subscription/checkout, /subscription/success, /subscription/cancel

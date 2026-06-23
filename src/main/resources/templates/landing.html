@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GDD — Счетоводна система за кантори</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --ink:    #0f0f14;
+            --slate:  #1e1e2e;
+            --mid:    #2d2d42;
+            --accent: #7c6ff7;
+            --light:  #a89cf7;
+            --glow:   rgba(124,111,247,.18);
+            --white:  #ffffff;
+            --muted:  #8888a8;
+            --surface:#f7f7fc;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--ink);
+            color: var(--white);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── NAV ── */
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 48px;
+            border-bottom: 1px solid rgba(255,255,255,.06);
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(15,15,20,.85);
+            backdrop-filter: blur(12px);
+        }
+        .logo {
+            font-size: 1.4rem; font-weight: 800; letter-spacing: -.02em;
+            background: linear-gradient(135deg, var(--light), var(--accent));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .nav-links { display: flex; gap: 12px; }
+        .btn-outline {
+            padding: 9px 22px; border-radius: 8px;
+            border: 1.5px solid rgba(255,255,255,.2);
+            color: var(--white); text-decoration: none;
+            font-size: .9rem; font-weight: 500;
+            transition: border-color .2s, background .2s;
+        }
+        .btn-outline:hover { border-color: var(--accent); background: var(--glow); color: var(--white); }
+        .btn-primary {
+            padding: 9px 22px; border-radius: 8px;
+            background: var(--accent); color: var(--white);
+            text-decoration: none; font-size: .9rem; font-weight: 600;
+            transition: opacity .2s, transform .2s;
+        }
+        .btn-primary:hover { opacity: .88; transform: translateY(-1px); color: var(--white); }
+
+        /* ── HERO ── */
+        .hero {
+            max-width: 820px; margin: 0 auto;
+            padding: 110px 24px 80px;
+            text-align: center;
+        }
+        .eyebrow {
+            display: inline-block;
+            font-size: .78rem; font-weight: 600; letter-spacing: .12em;
+            text-transform: uppercase; color: var(--light);
+            border: 1px solid rgba(124,111,247,.35);
+            padding: 6px 16px; border-radius: 40px;
+            margin-bottom: 28px;
+        }
+        h1 {
+            font-size: clamp(2.4rem, 5.5vw, 4rem);
+            font-weight: 900; line-height: 1.1;
+            letter-spacing: -.03em;
+            margin-bottom: 24px;
+        }
+        h1 em {
+            font-style: normal;
+            background: linear-gradient(135deg, #a89cf7, #7c6ff7, #5a4fcf);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero-sub {
+            font-size: 1.15rem; color: var(--muted);
+            line-height: 1.7; max-width: 540px;
+            margin: 0 auto 44px;
+        }
+        .hero-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+        .btn-hero {
+            padding: 15px 34px; border-radius: 10px;
+            font-size: 1rem; font-weight: 700;
+            text-decoration: none; transition: all .2s;
+        }
+        .btn-hero-primary {
+            background: linear-gradient(135deg, #7c6ff7, #5a4fcf);
+            color: white; box-shadow: 0 8px 32px rgba(124,111,247,.35);
+        }
+        .btn-hero-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(124,111,247,.5); color: white; }
+        .btn-hero-ghost {
+            border: 1.5px solid rgba(255,255,255,.18);
+            color: white; background: transparent;
+        }
+        .btn-hero-ghost:hover { border-color: var(--accent); background: var(--glow); color: white; }
+
+        /* trial note */
+        .trial-note {
+            margin-top: 16px; font-size: .82rem; color: var(--muted);
+        }
+        .trial-note span { color: var(--light); font-weight: 600; }
+
+        /* ── STATS ROW ── */
+        .stats {
+            display: flex; justify-content: center; gap: 0;
+            border-top: 1px solid rgba(255,255,255,.07);
+            border-bottom: 1px solid rgba(255,255,255,.07);
+            margin: 0 auto;
+            max-width: 700px;
+        }
+        .stat {
+            flex: 1; text-align: center; padding: 36px 20px;
+            border-right: 1px solid rgba(255,255,255,.07);
+        }
+        .stat:last-child { border-right: none; }
+        .stat-num {
+            font-size: 2.2rem; font-weight: 900;
+            background: linear-gradient(135deg, var(--light), var(--accent));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .stat-label { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+
+        /* ── FEATURES ── */
+        .features {
+            max-width: 960px; margin: 90px auto;
+            padding: 0 24px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+        .feature-card {
+            background: var(--slate);
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 16px; padding: 28px;
+            transition: border-color .2s, transform .2s;
+        }
+        .feature-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+        .feat-icon { font-size: 1.8rem; margin-bottom: 14px; }
+        .feat-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+        .feat-desc { font-size: .88rem; color: var(--muted); line-height: 1.6; }
+
+        /* ── PLANS ── */
+        .plans-section {
+            max-width: 840px; margin: 0 auto 90px;
+            padding: 0 24px; text-align: center;
+        }
+        .section-title {
+            font-size: 2rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -.02em;
+        }
+        .section-sub { color: var(--muted); margin-bottom: 44px; font-size: .95rem; }
+        .plans-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+        }
+        .plan-card {
+            background: var(--slate);
+            border: 1.5px solid rgba(255,255,255,.08);
+            border-radius: 18px; padding: 32px;
+            text-align: left; position: relative;
+            transition: border-color .2s;
+        }
+        .plan-card.featured {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent), 0 20px 60px rgba(124,111,247,.2);
+        }
+        .plan-badge {
+            position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+            background: var(--accent); color: white;
+            font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+            padding: 5px 16px; border-radius: 30px;
+        }
+        .plan-name { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+        .plan-price {
+            font-size: 2.4rem; font-weight: 900; margin: 12px 0 4px;
+            background: linear-gradient(135deg, var(--light), var(--accent));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .plan-price-sub { font-size: .82rem; color: var(--muted); margin-bottom: 22px; }
+        .plan-features { list-style: none; margin-bottom: 28px; }
+        .plan-features li {
+            padding: 7px 0; font-size: .9rem; color: #ccc;
+            border-bottom: 1px solid rgba(255,255,255,.05);
+        }
+        .plan-features li::before { content: "✓ "; color: var(--light); font-weight: 700; }
+        .btn-plan {
+            display: block; text-align: center;
+            padding: 12px; border-radius: 10px; font-weight: 600;
+            font-size: .95rem; text-decoration: none; transition: all .2s;
+        }
+        .btn-plan-basic {
+            border: 1.5px solid rgba(255,255,255,.2); color: white;
+        }
+        .btn-plan-basic:hover { border-color: var(--accent); background: var(--glow); color: white; }
+        .btn-plan-pro {
+            background: linear-gradient(135deg, #7c6ff7, #5a4fcf); color: white;
+        }
+        .btn-plan-pro:hover { opacity: .9; transform: translateY(-1px); color: white; }
+
+        /* ── FOOTER ── */
+        footer {
+            text-align: center; padding: 32px 24px;
+            border-top: 1px solid rgba(255,255,255,.06);
+            color: var(--muted); font-size: .82rem;
+        }
+
+        @media (max-width: 600px) {
+            nav { padding: 16px 20px; }
+            .plans-grid { grid-template-columns: 1fr; }
+            .stats { flex-direction: column; }
+            .stat { border-right: none; border-bottom: 1px solid rgba(255,255,255,.07); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+    <div class="logo">GDD</div>
+    <div class="nav-links">
+        <a th:href="@{/login}" class="btn-outline">Вход</a>
+        <a th:href="@{/register}" class="btn-primary">Регистрация</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="eyebrow">Счетоводна система за кантори</div>
+    <h1>Всичките ви фирми.<br><em>На едно място.</em></h1>
+    <p class="hero-sub">
+        GDD е платформа за счетоводни кантори — управлявайте фирми,
+        следете декларации, ДДС и работни периоди от един прозорец.
+    </p>
+    <div class="hero-cta">
+        <a th:href="@{/register}" class="btn-hero btn-hero-primary">
+            Започнете безплатно →
+        </a>
+        <a th:href="@{/login}" class="btn-hero btn-hero-ghost">
+            Имам акаунт
+        </a>
+    </div>
+    <div class="trial-note">
+        <span>14 дни</span> безплатен пробен период — без карта при регистрация
+    </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+    <div class="stat">
+        <div class="stat-num">14</div>
+        <div class="stat-label">дни безплатен trial</div>
+    </div>
+    <div class="stat">
+        <div class="stat-num">50+</div>
+        <div class="stat-label">фирми в Pro план</div>
+    </div>
+    <div class="stat">
+        <div class="stat-num">100%</div>
+        <div class="stat-label">облачна система</div>
+    </div>
+</div>
+
+<!-- FEATURES -->
+<div class="features">
+    <div class="feature-card">
+        <div class="feat-icon">🏢</div>
+        <div class="feat-title">Управление на фирми</div>
+        <div class="feat-desc">Статистики, декларации (чл.73, ал.1, ал.6), ДДС и годишни декларации за всяка фирма.</div>
+    </div>
+    <div class="feature-card">
+        <div class="feat-icon">📅</div>
+        <div class="feat-title">Работени месеци</div>
+        <div class="feat-desc">Следете кои фирми са обработени за всеки месец с ясен цветен статус.</div>
+    </div>
+    <div class="feature-card">
+        <div class="feat-icon">💰</div>
+        <div class="feat-title">Калкулатори</div>
+        <div class="feat-desc">Вграден калкулатор за ДДС, брутна/нетна заплата и изчисляване на трудов стаж.</div>
+    </div>
+    <div class="feature-card">
+        <div class="feat-icon">👥</div>
+        <div class="feat-title">Екип от служители</div>
+        <div class="feat-desc">Добавете служители към кантората — всеки вижда само вашите фирми, никой чужд.</div>
+    </div>
+    <div class="feature-card">
+        <div class="feat-icon">🔒</div>
+        <div class="feat-title">Пълна изолация на данните</div>
+        <div class="feat-desc">Всяка кантора вижда само своите фирми. Пълна сигурност между различните кантори.</div>
+    </div>
+    <div class="feature-card">
+        <div class="feat-icon">☁️</div>
+        <div class="feat-title">Работи навсякъде</div>
+        <div class="feat-desc">Облачна система — достъп от офис, от вкъщи или от телефона. Без инсталация.</div>
+    </div>
+</div>
+
+<!-- PLANS -->
+<section class="plans-section">
+    <div class="section-title">Прозрачни цени</div>
+    <div class="section-sub">Изберете план. Може да смените по всяко време.</div>
+
+    <div class="plans-grid">
+        <div class="plan-card">
+            <div class="plan-name">Basic</div>
+            <div class="plan-price">29 лв</div>
+            <div class="plan-price-sub">на месец, без ДДС</div>
+            <ul class="plan-features">
+                <li>До 10 фирми</li>
+                <li>До 2 служители</li>
+                <li>Всички основни функции</li>
+                <li>14 дни безплатно</li>
+            </ul>
+            <a th:href="@{/register}" class="btn-plan btn-plan-basic">Започни безплатно</a>
+        </div>
+
+        <div class="plan-card featured">
+            <div class="plan-badge">Препоръчан</div>
+            <div class="plan-name">Pro</div>
+            <div class="plan-price">79 лв</div>
+            <div class="plan-price-sub">на месец, без ДДС</div>
+            <ul class="plan-features">
+                <li>До 50 фирми</li>
+                <li>До 10 служители</li>
+                <li>Всички функции на Basic</li>
+                <li>14 дни безплатно</li>
+            </ul>
+            <a th:href="@{/register}" class="btn-plan btn-plan-pro">Започни безплатно</a>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    © 2026 GDD — Счетоводна система &nbsp;·&nbsp;
+    <a th:href="@{/login}" style="color:var(--light);text-decoration:none;">Вход</a>
+    &nbsp;·&nbsp;
+    <a th:href="@{/register}" style="color:var(--light);text-decoration:none;">Регистрация</a>
+</footer>
+
+</body>
+</html>

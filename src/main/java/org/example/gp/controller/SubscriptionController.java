@@ -1,6 +1,7 @@
 package org.example.gp.controller;
 
 import com.stripe.exception.StripeException;
+import com.stripe.model.checkout.Session;
 import org.example.gp.entity.PlanType;
 import org.example.gp.entity.Subscription;
 import org.example.gp.entity.User;
@@ -27,9 +28,7 @@ public class SubscriptionController {
         this.userRepository = userRepository;
     }
 
-    // -------------------------------------------------------------------------
-    // GET /subscription — показва текущ план + trial статус + бутони за избор
-    // -------------------------------------------------------------------------
+    // GET /subscription — страница с планове и текущ статус
     @GetMapping("/subscription")
     public String subscriptionPage(Model model) {
         User user = getCurrentUser();
@@ -43,18 +42,16 @@ public class SubscriptionController {
         model.addAttribute("subscription", sub);
         model.addAttribute("daysLeft", daysLeft);
         model.addAttribute("plans", PlanType.values());
-
         return "subscription";
     }
 
-    // -------------------------------------------------------------------------
-    // POST /subscription/checkout — създава Stripe Checkout сесия и редиректва
-    // -------------------------------------------------------------------------
+    // GET /subscription/checkout — предпазва от директно отваряне в браузъра
     @GetMapping("/subscription/checkout")
     public String checkoutGet() {
         return "redirect:/subscription";
     }
 
+    // POST /subscription/checkout — отваря Stripe Checkout
     @PostMapping("/subscription/checkout")
     public String checkout(@RequestParam PlanType plan,
                            RedirectAttributes redirectAttributes) {
@@ -62,7 +59,6 @@ public class SubscriptionController {
         if (user == null || user.getOfficeId() == null) {
             return "redirect:/companies";
         }
-
         try {
             String checkoutUrl = subscriptionService.createCheckoutSession(
                     user.getOfficeId(), plan, null);
@@ -75,10 +71,37 @@ public class SubscriptionController {
     }
 
     // -------------------------------------------------------------------------
-    // GET /subscription/success — Stripe пренасочва тук след успешно плащане
+    // GET /subscription/success
+    // Stripe пренасочва тук след успешно плащане.
+    // ВАЖНО: Активираме абонамента директно от session_id — не чакаме webhook.
+    // Webhook-ът ще дойде и ще потвърди допълнително, но потребителят
+    // трябва да може да влезе ВЕДНАГА след плащане.
     // -------------------------------------------------------------------------
     @GetMapping("/subscription/success")
     public String success(@RequestParam(required = false) String session_id, Model model) {
+        User user = getCurrentUser();
+
+        if (session_id != null && user != null && user.getOfficeId() != null) {
+            try {
+                // Взимаме session от Stripe и активираме абонамента веднага
+                Session session = Session.retrieve(session_id);
+                if (session != null && "complete".equals(session.getStatus())) {
+                    String officeIdMeta = session.getMetadata().get("officeId");
+                    String planMeta     = session.getMetadata().get("plan");
+                    String customerId   = session.getCustomer();
+                    String subId        = session.getSubscription();
+
+                    if (officeIdMeta != null && planMeta != null) {
+                        subscriptionService.handleCheckoutCompleted(
+                                officeIdMeta, planMeta, customerId, subId);
+                    }
+                }
+            } catch (Exception e) {
+                // Ако Stripe API не отговори — webhook ще активира по-късно
+                e.printStackTrace();
+            }
+        }
+
         model.addAttribute("successMessage",
             "Плащането е успешно! Вашият абонамент е активиран.");
         return "subscription-success";
@@ -86,13 +109,10 @@ public class SubscriptionController {
 
     @GetMapping("/subscription/cancel")
     public String cancel(Model model) {
-        model.addAttribute("errorMessage", "Плащането беше отказано.");
+        model.addAttribute("errorMessage", "Плащането беше отказано. Може да опитате отново.");
         return "subscription-cancel";
     }
 
-    // -------------------------------------------------------------------------
-    // Помощен метод
-    // -------------------------------------------------------------------------
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) return null;

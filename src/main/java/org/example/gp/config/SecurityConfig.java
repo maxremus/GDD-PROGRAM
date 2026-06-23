@@ -29,6 +29,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Публични ресурси
                 .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+                // Заглавна страница — публична
+                .requestMatchers("/").permitAll()
                 // Страница за регистрация на нова кантора — публична
                 .requestMatchers("/register").permitAll()
                 // Stripe webhook — публичен (проверка през подпис, не през login)
