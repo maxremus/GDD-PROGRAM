@@ -24,16 +24,21 @@ public class SalaryController {
         return "net-to-gross";
     }
 
+    /** Брутна → Нетна */
     @PostMapping("/net-to-gross")
-    public String calculate(
-            @RequestParam double grossSalary,
-            Model model) {
-
-        SalaryResult result =
-                salaryService.calculate(grossSalary);
-
+    public String calculate(@RequestParam double grossSalary, Model model) {
+        SalaryResult result = salaryService.calculate(grossSalary);
         model.addAttribute("result", result);
+        model.addAttribute("activeTab", "gross");
+        return "net-to-gross";
+    }
 
+    /** Нетна → Брутна (обратен калкулатор) */
+    @PostMapping("/net-to-gross/reverse")
+    public String calculateReverse(@RequestParam double netSalary, Model model) {
+        SalaryResult result = salaryService.calculateReverse(netSalary);
+        model.addAttribute("resultReverse", result);
+        model.addAttribute("activeTab", "net");
         return "net-to-gross";
     }
 }

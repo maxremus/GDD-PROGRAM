@@ -15,46 +15,41 @@ public class SalaryService {
     // Данък
     private static final double TAX = 0.10;
 
+    /**
+     * Брутна → Нетна
+     */
     public SalaryResult calculate(double grossSalary) {
 
-        // Осигуровки служител
-        double employeeInsurance =
-                grossSalary * EMPLOYEE_INSURANCE;
-
-        // Облагаем доход
-        double taxableIncome =
-                grossSalary - employeeInsurance;
-
-        // Данък
-        double tax =
-                taxableIncome * TAX;
-
-        // Нетна заплата
-        double netSalary =
-                taxableIncome - tax;
-
-        // Осигуровки работодател
-        double employerInsurance =
-                grossSalary * EMPLOYER_INSURANCE;
-
-        // Общ разход
-        double totalEmployerCost =
-                grossSalary + employerInsurance;
+        double employeeInsurance  = grossSalary * EMPLOYEE_INSURANCE;
+        double taxableIncome      = grossSalary - employeeInsurance;
+        double tax                = taxableIncome * TAX;
+        double netSalary          = taxableIncome - tax;
+        double employerInsurance  = grossSalary * EMPLOYER_INSURANCE;
+        double totalEmployerCost  = grossSalary + employerInsurance;
 
         return new SalaryResult(
-
                 round(grossSalary),
-
                 round(employeeInsurance),
-
                 round(employerInsurance),
-
                 round(tax),
-
                 round(netSalary),
-
                 round(totalEmployerCost)
         );
+    }
+
+    /**
+     * Нетна → Брутна (обратен калкулатор)
+     * нето = брuto × (1 - EMPLOYEE_INSURANCE) × (1 - TAX)
+     *      = брuto × 0.8622 × 0.90
+     *      = брuto × 0.77598
+     * ∴ брuto = нето / 0.77598
+     */
+    public SalaryResult calculateReverse(double netSalary) {
+
+        double factor     = (1.0 - EMPLOYEE_INSURANCE) * (1.0 - TAX);
+        double gross      = netSalary / factor;
+
+        return calculate(round(gross));
     }
 
     private double round(double value) {
