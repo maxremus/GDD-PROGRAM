@@ -516,7 +516,8 @@
                                 <td>
         <span th:if="${company.year}"
               class="badge year-badge"
-              th:class="${company.year == 2025} ? 'current-year' : 'future-year'"
+              th:classappend="${company.year == 2025} ? ' current-year' : ' future-year'"
+              th:attr="data-year=${company.year}"
               th:text="${company.year}">
         </span>
                                 </td>
@@ -714,11 +715,10 @@
                     if (companiesTable) {
                         const rows = companiesTable.querySelectorAll('tbody tr');
                         rows.forEach(row => {
-                            const yearCell = row.querySelector('td:nth-child(3)');
-                            const yearBadge = yearCell ? yearCell.querySelector('.badge') : null;
-                            const yearText = yearBadge ? yearBadge.textContent.trim() : '';
+                            const yearSpan = row.querySelector('td:nth-child(3) span[data-year]');
+                            const rowYear = yearSpan ? yearSpan.getAttribute('data-year') : '';
 
-                            if (year === 'all' || yearText === year) {
+                            if (year === 'all' || rowYear === year) {
                                 row.style.display = '';
                             } else {
                                 row.style.display = 'none';

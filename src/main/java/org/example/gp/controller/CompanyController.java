@@ -263,6 +263,6 @@ public class CompanyController {
                                @RequestParam Integer month,
                                @RequestParam Integer year) {
         companyWorkedService.deleteById(id);
-        return "redirect:/companies?month=" + month + "&year=" + year;
+        return "redirect:/companies/worked?month=" + month + "&year=" + year;
     }
 }
