@@ -14,10 +14,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-/**
- * Проверява дали кантората има активен достъп.
- * Ако trial-ът е изтекъл → пренасочва към /subscription.
- */
 @Component
 public class SubscriptionAccessFilter extends OncePerRequestFilter {
 
@@ -37,7 +33,6 @@ public class SubscriptionAccessFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Пропускаме всички публични и абонаментни пътища
         if (isAllowed(path)) {
             filterChain.doFilter(request, response);
             return;
@@ -51,15 +46,16 @@ public class SubscriptionAccessFilter extends OncePerRequestFilter {
 
         User user = userRepository.findByUsername(auth.getName()).orElse(null);
 
-        // ADMIN не се проверява — системен потребител
         if (user == null || user.getOfficeId() == null || "ROLE_ADMIN".equals(user.getRole())) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Проверяваме достъп само за кантори
         if (!subscriptionService.hasAccess(user.getOfficeId())) {
-            response.sendRedirect("/subscription?expired=true");
+            // Проверяваме дали response-ът вече е committed преди redirect
+            if (!response.isCommitted()) {
+                response.sendRedirect("/subscription?expired=true");
+            }
             return;
         }
 
@@ -71,12 +67,14 @@ public class SubscriptionAccessFilter extends OncePerRequestFilter {
                 || path.startsWith("/login")
                 || path.startsWith("/logout")
                 || path.startsWith("/register")
-                || path.startsWith("/subscription")   // покрива /subscription, /subscription/checkout, /subscription/success, /subscription/cancel
+                || path.startsWith("/subscription")
                 || path.startsWith("/stripe/webhook")
                 || path.startsWith("/css")
                 || path.startsWith("/js")
                 || path.startsWith("/images")
+                || path.startsWith("/favicon")
                 || path.startsWith("/actuator")
-                || path.startsWith("/error");
+                || path.startsWith("/error")
+                || path.startsWith("/webjars");
     }
 }
