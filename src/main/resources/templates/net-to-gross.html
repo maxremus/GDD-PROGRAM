@@ -127,14 +127,14 @@
 
         <div class="form-section">
             <form th:action="@{/companies/net-to-gross}" method="post">
-                <label class="form-label-bold">Въведете брутна заплата (€)</label>
+                <label class="form-label-bold">Въведете брутна заплата (лв)</label>
                 <div class="input-lv">
                     <input type="number" step="0.01" min="0" name="grossSalary"
                            class="form-control"
                            placeholder="напр. 2000"
                            th:value="${result != null} ? ${result.grossSalary} : ''"
                            required>
-                    <span class="lv-suffix">€</span>
+                    <span class="lv-suffix">лв</span>
                 </div>
                 <button type="submit" class="btn-calc">⚡ Изчисли нетна заплата</button>
             </form>
@@ -149,35 +149,35 @@
         <!-- Резултат Брутна → Нетна -->
         <div class="result-section" th:if="${result != null}">
             <div class="result-main net">
-                💵 Нетна заплата: <span th:text="${result.netSalary} + ' €'"></span>
+                💵 Нетна заплата: <span th:text="${result.netSalary} + ' лв'"></span>
             </div>
 
             <div class="result-row">
                 <span class="label">Брутна заплата</span>
-                <span class="value" th:text="${result.grossSalary} + ' €'"></span>
+                <span class="value" th:text="${result.grossSalary} + ' лв'"></span>
             </div>
             <div class="result-row">
                 <span class="label">— Осигуровки служител (13.78%)</span>
-                <span class="value" th:text="'- ' + ${result.employeeInsurance} + ' €'"></span>
+                <span class="value" th:text="'- ' + ${result.employeeInsurance} + ' лв'"></span>
             </div>
             <div class="result-row">
                 <span class="label">— Данък ДДФЛ (10%)</span>
-                <span class="value" th:text="'- ' + ${result.tax} + ' €'"></span>
+                <span class="value" th:text="'- ' + ${result.tax} + ' лв'"></span>
             </div>
             <div class="result-row total">
                 <span class="label"><strong>= Нетна заплата</strong></span>
-                <span class="value" th:text="${result.netSalary} + ' €'"></span>
+                <span class="value" th:text="${result.netSalary} + ' лв'"></span>
             </div>
 
             <hr style="margin:16px 0">
 
             <div class="result-row">
                 <span class="label">Осигуровки работодател (19.52%)</span>
-                <span class="value employer" th:text="${result.employerInsurance} + ' €'"></span>
+                <span class="value employer" th:text="${result.employerInsurance} + ' лв'"></span>
             </div>
             <div class="result-row total">
                 <span class="label"><strong>Общ разход работодател</strong></span>
-                <span class="value" th:text="${result.totalEmployerCost} + ' €'"></span>
+                <span class="value" th:text="${result.totalEmployerCost} + ' лв'"></span>
             </div>
         </div>
     </div>
@@ -188,14 +188,14 @@
 
         <div class="form-section">
             <form th:action="@{/companies/net-to-gross/reverse}" method="post">
-                <label class="form-label-bold">Въведете нетна заплата (€)</label>
+                <label class="form-label-bold">Въведете нетна заплата (лв)</label>
                 <div class="input-lv">
                     <input type="number" step="0.01" min="0" name="netSalary"
                            class="form-control"
                            placeholder="напр. 1550"
                            th:value="${resultReverse != null} ? ${resultReverse.netSalary} : ''"
                            required>
-                    <span class="lv-suffix">€</span>
+                    <span class="lv-suffix">лв</span>
                 </div>
                 <button type="submit" class="btn-calc">⚡ Изчисли брутна заплата</button>
             </form>
@@ -209,20 +209,20 @@
         <!-- Резултат Нетна → Брутна -->
         <div class="result-section" th:if="${resultReverse != null}">
             <div class="result-main gross">
-                📊 Брутна заплата: <span th:text="${resultReverse.grossSalary} + ' €'"></span>
+                📊 Брутна заплата: <span th:text="${resultReverse.grossSalary} + ' лв'"></span>
             </div>
 
             <div class="result-row">
                 <span class="label">Брутна заплата</span>
-                <span class="value" th:text="${resultReverse.grossSalary} + ' €'"></span>
+                <span class="value" th:text="${resultReverse.grossSalary} + ' лв'"></span>
             </div>
             <div class="result-row">
                 <span class="label">— Осигуровки служител (13.78%)</span>
-                <span class="value" th:text="'- ' + ${resultReverse.employeeInsurance} + ' €'"></span>
+                <span class="value" th:text="'- ' + ${resultReverse.employeeInsurance} + ' лв'"></span>
             </div>
             <div class="result-row">
                 <span class="label">— Данък ДДФЛ (10%)</span>
-                <span class="value" th:text="'- ' + ${resultReverse.tax} + ' €'"></span>
+                <span class="value" th:text="'- ' + ${resultReverse.tax} + ' лв'"></span>
             </div>
             <div class="result-row total">
                 <span class="label"><strong>= Нетна заплата</strong></span>
@@ -233,11 +233,11 @@
 
             <div class="result-row">
                 <span class="label">Осигуровки работодател (19.52%)</span>
-                <span class="value employer" th:text="${resultReverse.employerInsurance} + ' €'"></span>
+                <span class="value employer" th:text="${resultReverse.employerInsurance} + ' лв'"></span>
             </div>
             <div class="result-row total">
                 <span class="label"><strong>Общ разход работодател</strong></span>
-                <span class="value" th:text="${resultReverse.totalEmployerCost} + ' €'"></span>
+                <span class="value" th:text="${resultReverse.totalEmployerCost} + ' лв'"></span>
             </div>
         </div>
     </div>

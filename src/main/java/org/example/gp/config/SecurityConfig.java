@@ -29,6 +29,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Публични ресурси
                 .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+                // Error страница — винаги публична
+                .requestMatchers("/error").permitAll()
                 // Заглавна страница — публична
                 .requestMatchers("/").permitAll()
                 // Страница за регистрация на нова кантора — публична
