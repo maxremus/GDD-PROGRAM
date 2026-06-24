@@ -11,40 +11,40 @@
         :root {
             --ink:    #0f0f14;
             --slate:  #1e1e2e;
-            --mid:    #2d2d42;
             --accent: #7c6ff7;
             --light:  #a89cf7;
             --glow:   rgba(124,111,247,.18);
             --white:  #ffffff;
             --muted:  #8888a8;
-            --surface:#f7f7fc;
         }
 
         body {
             font-family: 'Inter', sans-serif;
             background: var(--ink);
             color: var(--white);
-            min-height: 100vh;
             overflow-x: hidden;
         }
 
         /* ── NAV ── */
         nav {
-            display: flex;
-            align-items: center;
+            display: flex; align-items: center;
             justify-content: space-between;
             padding: 20px 48px;
             border-bottom: 1px solid rgba(255,255,255,.06);
             position: sticky; top: 0; z-index: 100;
-            background: rgba(15,15,20,.85);
+            background: rgba(15,15,20,.9);
             backdrop-filter: blur(12px);
         }
         .logo {
-            font-size: 1.4rem; font-weight: 800; letter-spacing: -.02em;
+            font-size: 1.5rem; font-weight: 900; letter-spacing: -.02em;
             background: linear-gradient(135deg, var(--light), var(--accent));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        .nav-links { display: flex; gap: 12px; }
+        .nav-links { display: flex; gap: 12px; align-items: center; }
+        .nav-link { color: var(--muted); text-decoration: none; font-size: .9rem;
+                    font-weight: 500; padding: 8px 14px; border-radius: 8px;
+                    transition: color .2s; }
+        .nav-link:hover { color: var(--white); }
         .btn-outline {
             padding: 9px 22px; border-radius: 8px;
             border: 1.5px solid rgba(255,255,255,.2);
@@ -53,33 +53,49 @@
             transition: border-color .2s, background .2s;
         }
         .btn-outline:hover { border-color: var(--accent); background: var(--glow); color: var(--white); }
-        .btn-primary {
+        .btn-primary-nav {
             padding: 9px 22px; border-radius: 8px;
             background: var(--accent); color: var(--white);
             text-decoration: none; font-size: .9rem; font-weight: 600;
             transition: opacity .2s, transform .2s;
         }
-        .btn-primary:hover { opacity: .88; transform: translateY(-1px); color: var(--white); }
+        .btn-primary-nav:hover { opacity: .88; transform: translateY(-1px); color: var(--white); }
 
         /* ── HERO ── */
-        .hero {
-            max-width: 820px; margin: 0 auto;
-            padding: 110px 24px 80px;
-            text-align: center;
+        .hero-wrapper {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 48px 60px;
         }
+        .hero-img {
+            display: flex; align-items: center; justify-content: center;
+        }
+        .hero-img img {
+            width: 100%; max-width: 340px;
+            filter: drop-shadow(0 20px 60px rgba(124,111,247,.25));
+            transition: transform .4s ease;
+        }
+        .hero-img img:hover { transform: translateY(-8px) scale(1.02); }
+        .hero-img.left  { justify-content: flex-end; }
+        .hero-img.right { justify-content: flex-start; }
+
+        .hero-center { text-align: center; }
         .eyebrow {
             display: inline-block;
-            font-size: .78rem; font-weight: 600; letter-spacing: .12em;
+            font-size: .75rem; font-weight: 600; letter-spacing: .12em;
             text-transform: uppercase; color: var(--light);
             border: 1px solid rgba(124,111,247,.35);
             padding: 6px 16px; border-radius: 40px;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
         }
         h1 {
-            font-size: clamp(2.4rem, 5.5vw, 4rem);
+            font-size: clamp(2rem, 4vw, 3.4rem);
             font-weight: 900; line-height: 1.1;
-            letter-spacing: -.03em;
-            margin-bottom: 24px;
+            letter-spacing: -.03em; margin-bottom: 20px;
         }
         h1 em {
             font-style: normal;
@@ -87,14 +103,13 @@
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
         .hero-sub {
-            font-size: 1.15rem; color: var(--muted);
-            line-height: 1.7; max-width: 540px;
-            margin: 0 auto 44px;
+            font-size: 1rem; color: var(--muted);
+            line-height: 1.7; margin-bottom: 36px;
         }
-        .hero-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+        .hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
         .btn-hero {
-            padding: 15px 34px; border-radius: 10px;
-            font-size: 1rem; font-weight: 700;
+            padding: 14px 30px; border-radius: 10px;
+            font-size: .95rem; font-weight: 700;
             text-decoration: none; transition: all .2s;
         }
         .btn-hero-primary {
@@ -107,119 +122,160 @@
             color: white; background: transparent;
         }
         .btn-hero-ghost:hover { border-color: var(--accent); background: var(--glow); color: white; }
-
-        /* trial note */
-        .trial-note {
-            margin-top: 16px; font-size: .82rem; color: var(--muted);
-        }
+        .trial-note { margin-top: 14px; font-size: .8rem; color: var(--muted); }
         .trial-note span { color: var(--light); font-weight: 600; }
 
-        /* ── STATS ROW ── */
+        /* ── STATS ── */
         .stats {
-            display: flex; justify-content: center; gap: 0;
+            display: flex; justify-content: center;
             border-top: 1px solid rgba(255,255,255,.07);
             border-bottom: 1px solid rgba(255,255,255,.07);
-            margin: 0 auto;
-            max-width: 700px;
+            max-width: 700px; margin: 0 auto;
         }
-        .stat {
-            flex: 1; text-align: center; padding: 36px 20px;
-            border-right: 1px solid rgba(255,255,255,.07);
-        }
+        .stat { flex: 1; text-align: center; padding: 32px 20px;
+                border-right: 1px solid rgba(255,255,255,.07); }
         .stat:last-child { border-right: none; }
         .stat-num {
-            font-size: 2.2rem; font-weight: 900;
+            font-size: 2rem; font-weight: 900;
             background: linear-gradient(135deg, var(--light), var(--accent));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        .stat-label { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+        .stat-label { font-size: .8rem; color: var(--muted); margin-top: 4px; }
 
         /* ── FEATURES ── */
         .features {
-            max-width: 960px; margin: 90px auto;
+            max-width: 960px; margin: 80px auto;
             padding: 0 24px;
             display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 20px;
+            gap: 18px;
         }
         .feature-card {
             background: var(--slate);
             border: 1px solid rgba(255,255,255,.07);
-            border-radius: 16px; padding: 28px;
+            border-radius: 16px; padding: 26px;
             transition: border-color .2s, transform .2s;
         }
         .feature-card:hover { border-color: var(--accent); transform: translateY(-3px); }
-        .feat-icon { font-size: 1.8rem; margin-bottom: 14px; }
-        .feat-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
-        .feat-desc { font-size: .88rem; color: var(--muted); line-height: 1.6; }
+        .feat-icon { font-size: 1.7rem; margin-bottom: 12px; }
+        .feat-title { font-size: .95rem; font-weight: 700; margin-bottom: 7px; }
+        .feat-desc { font-size: .85rem; color: var(--muted); line-height: 1.6; }
 
         /* ── PLANS ── */
         .plans-section {
-            max-width: 840px; margin: 0 auto 90px;
+            max-width: 840px; margin: 0 auto 80px;
             padding: 0 24px; text-align: center;
         }
-        .section-title {
-            font-size: 2rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -.02em;
-        }
-        .section-sub { color: var(--muted); margin-bottom: 44px; font-size: .95rem; }
-        .plans-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
-        }
+        .section-title { font-size: 1.9rem; font-weight: 800; margin-bottom: 8px; }
+        .section-sub { color: var(--muted); margin-bottom: 40px; font-size: .92rem; }
+        .plans-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .plan-card {
             background: var(--slate);
             border: 1.5px solid rgba(255,255,255,.08);
-            border-radius: 18px; padding: 32px;
+            border-radius: 18px; padding: 30px;
             text-align: left; position: relative;
-            transition: border-color .2s;
         }
         .plan-card.featured {
             border-color: var(--accent);
             box-shadow: 0 0 0 1px var(--accent), 0 20px 60px rgba(124,111,247,.2);
         }
         .plan-badge {
-            position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
             background: var(--accent); color: white;
-            font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-            padding: 5px 16px; border-radius: 30px;
+            font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+            padding: 4px 14px; border-radius: 30px;
         }
-        .plan-name { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+        .plan-name { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
         .plan-price {
-            font-size: 2.4rem; font-weight: 900; margin: 12px 0 4px;
+            font-size: 2.2rem; font-weight: 900; margin: 10px 0 3px;
             background: linear-gradient(135deg, var(--light), var(--accent));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        .plan-price-sub { font-size: .82rem; color: var(--muted); margin-bottom: 22px; }
-        .plan-features { list-style: none; margin-bottom: 28px; }
+        .plan-price-sub { font-size: .8rem; color: var(--muted); margin-bottom: 20px; }
+        .plan-features { list-style: none; margin-bottom: 24px; }
         .plan-features li {
-            padding: 7px 0; font-size: .9rem; color: #ccc;
+            padding: 6px 0; font-size: .88rem; color: #ccc;
             border-bottom: 1px solid rgba(255,255,255,.05);
         }
         .plan-features li::before { content: "✓ "; color: var(--light); font-weight: 700; }
         .btn-plan {
             display: block; text-align: center;
-            padding: 12px; border-radius: 10px; font-weight: 600;
-            font-size: .95rem; text-decoration: none; transition: all .2s;
+            padding: 11px; border-radius: 10px; font-weight: 600;
+            font-size: .9rem; text-decoration: none; transition: all .2s;
         }
-        .btn-plan-basic {
-            border: 1.5px solid rgba(255,255,255,.2); color: white;
-        }
+        .btn-plan-basic { border: 1.5px solid rgba(255,255,255,.2); color: white; }
         .btn-plan-basic:hover { border-color: var(--accent); background: var(--glow); color: white; }
-        .btn-plan-pro {
-            background: linear-gradient(135deg, #7c6ff7, #5a4fcf); color: white;
-        }
+        .btn-plan-pro { background: linear-gradient(135deg, #7c6ff7, #5a4fcf); color: white; }
         .btn-plan-pro:hover { opacity: .9; transform: translateY(-1px); color: white; }
+
+        /* ── CONTACT ── */
+        .contact-section {
+            max-width: 640px; margin: 0 auto 80px;
+            padding: 0 24px; text-align: center;
+        }
+        .contact-card {
+            background: var(--slate);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 20px; padding: 40px 36px;
+            text-align: left;
+        }
+        .contact-card h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; }
+        .contact-card p { color: var(--muted); font-size: .9rem; margin-bottom: 28px; }
+        .contact-card label {
+            display: block; font-size: .85rem; font-weight: 600;
+            color: #ccc; margin-bottom: 6px;
+        }
+        .contact-card input,
+        .contact-card textarea {
+            width: 100%; background: rgba(255,255,255,.06);
+            border: 1.5px solid rgba(255,255,255,.1);
+            border-radius: 10px; color: white;
+            padding: 11px 14px; font-size: .9rem;
+            font-family: 'Inter', sans-serif;
+            transition: border-color .2s;
+            margin-bottom: 16px;
+        }
+        .contact-card input:focus,
+        .contact-card textarea:focus {
+            outline: none; border-color: var(--accent);
+            background: rgba(124,111,247,.08);
+        }
+        .contact-card textarea { resize: vertical; min-height: 120px; }
+        .btn-send {
+            width: 100%; padding: 13px; border: none; border-radius: 10px;
+            background: linear-gradient(135deg, #7c6ff7, #5a4fcf);
+            color: white; font-size: 1rem; font-weight: 700;
+            cursor: pointer; transition: opacity .2s, transform .2s;
+        }
+        .btn-send:hover { opacity: .9; transform: translateY(-1px); }
+        .contact-direct {
+            margin-top: 20px; text-align: center;
+            font-size: .85rem; color: var(--muted);
+        }
+        .contact-direct a { color: var(--light); text-decoration: none; }
+        .contact-direct a:hover { text-decoration: underline; }
+        .success-msg {
+            background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.4);
+            border-radius: 10px; padding: 14px 18px;
+            color: #6ee7b7; font-size: .9rem; margin-bottom: 16px;
+            display: none;
+        }
 
         /* ── FOOTER ── */
         footer {
-            text-align: center; padding: 32px 24px;
+            text-align: center; padding: 28px 24px;
             border-top: 1px solid rgba(255,255,255,.06);
-            color: var(--muted); font-size: .82rem;
+            color: var(--muted); font-size: .8rem;
         }
+        footer a { color: var(--light); text-decoration: none; }
 
-        @media (max-width: 600px) {
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
             nav { padding: 16px 20px; }
+            .hero-wrapper { grid-template-columns: 1fr; padding: 50px 20px 40px; gap: 20px; }
+            .hero-img { display: none; }
             .plans-grid { grid-template-columns: 1fr; }
             .stats { flex-direction: column; }
-            .stat { border-right: none; border-bottom: 1px solid rgba(255,255,255,.07); }
+            .stat { border-right: none; border-bottom: 1px solid rgba(255,255,255,.07); padding: 20px; }
         }
     </style>
 </head>
@@ -229,29 +285,53 @@
 <nav>
     <div class="logo">GDD</div>
     <div class="nav-links">
+        <a href="#features" class="nav-link">Функции</a>
+        <a href="#plans" class="nav-link">Цени</a>
+        <a href="#contact" class="nav-link">Контакт</a>
         <a th:href="@{/login}" class="btn-outline">Вход</a>
-        <a th:href="@{/register}" class="btn-primary">Регистрация</a>
+        <a th:href="@{/register}" class="btn-primary-nav">Регистрация</a>
     </div>
 </nav>
 
-<!-- HERO -->
-<section class="hero">
-    <div class="eyebrow">Счетоводна система за кантори</div>
-    <h1>Всичките ви фирми.<br><em>На едно място.</em></h1>
-    <p class="hero-sub">
-        GDD е платформа за счетоводни кантори — управлявайте фирми,
-        следете декларации, ДДС и работни периоди от един прозорец.
-    </p>
-    <div class="hero-cta">
-        <a th:href="@{/register}" class="btn-hero btn-hero-primary">
-            Започнете безплатно →
-        </a>
-        <a th:href="@{/login}" class="btn-hero btn-hero-ghost">
-            Имам акаунт
-        </a>
-    </div>
-    <div class="trial-note">
-        <span>14 дни</span> безплатен пробен период — без карта при регистрация
+<!-- HERO с картинки от двете страни -->
+<section>
+    <div class="hero-wrapper">
+
+        <!-- Картинка вляво -->
+        <div class="hero-img left">
+            <img th:src="@{/images/hero-budget.png}"
+                 src="/images/hero-budget.png"
+                 alt="Счетоводство и бюджет">
+        </div>
+
+        <!-- Текст в центъра -->
+        <div class="hero-center">
+            <div class="eyebrow">Счетоводна система за кантори</div>
+            <h1>Всичките ви фирми.<br><em>На едно място.</em></h1>
+            <p class="hero-sub">
+                GDD е платформа за счетоводни кантори — управлявайте фирми,
+                следете декларации, ДДС и работни периоди от един прозорец.
+            </p>
+            <div class="hero-cta">
+                <a th:href="@{/register}" class="btn-hero btn-hero-primary">
+                    Започнете безплатно →
+                </a>
+                <a th:href="@{/login}" class="btn-hero btn-hero-ghost">
+                    Имам акаунт
+                </a>
+            </div>
+            <div class="trial-note">
+                <span>14 дни</span> безплатен пробен период — без карта
+            </div>
+        </div>
+
+        <!-- Картинка вдясно -->
+        <div class="hero-img right">
+            <img th:src="@{/images/hero-accounting.png}"
+                 src="/images/hero-accounting.png"
+                 alt="Счетоводен софтуер">
+        </div>
+
     </div>
 </section>
 
@@ -272,7 +352,7 @@
 </div>
 
 <!-- FEATURES -->
-<div class="features">
+<div class="features" id="features">
     <div class="feature-card">
         <div class="feat-icon">🏢</div>
         <div class="feat-title">Управление на фирми</div>
@@ -286,30 +366,29 @@
     <div class="feature-card">
         <div class="feat-icon">💰</div>
         <div class="feat-title">Калкулатори</div>
-        <div class="feat-desc">Вграден калкулатор за ДДС, брутна/нетна заплата и изчисляване на трудов стаж.</div>
+        <div class="feat-desc">Вграден калкулатор за ДДС, брутна/нетна заплата и трудов стаж.</div>
     </div>
     <div class="feature-card">
         <div class="feat-icon">👥</div>
         <div class="feat-title">Екип от служители</div>
-        <div class="feat-desc">Добавете служители към кантората — всеки вижда само вашите фирми, никой чужд.</div>
+        <div class="feat-desc">Добавете служители към кантората — всеки вижда само вашите фирми.</div>
     </div>
     <div class="feature-card">
         <div class="feat-icon">🔒</div>
         <div class="feat-title">Пълна изолация на данните</div>
-        <div class="feat-desc">Всяка кантора вижда само своите фирми. Пълна сигурност между различните кантори.</div>
+        <div class="feat-desc">Всяка кантора вижда само своите фирми. Пълна сигурност между кантори.</div>
     </div>
     <div class="feature-card">
         <div class="feat-icon">☁️</div>
         <div class="feat-title">Работи навсякъде</div>
-        <div class="feat-desc">Облачна система — достъп от офис, от вкъщи или от телефона. Без инсталация.</div>
+        <div class="feat-desc">Облачна система — достъп от офис, от вкъщи или от телефона.</div>
     </div>
 </div>
 
 <!-- PLANS -->
-<section class="plans-section">
+<section class="plans-section" id="plans">
     <div class="section-title">Прозрачни цени</div>
     <div class="section-sub">Изберете план. Може да смените по всяко време.</div>
-
     <div class="plans-grid">
         <div class="plan-card">
             <div class="plan-name">Basic</div>
@@ -323,7 +402,6 @@
             </ul>
             <a th:href="@{/register}" class="btn-plan btn-plan-basic">Започни безплатно</a>
         </div>
-
         <div class="plan-card featured">
             <div class="plan-badge">Препоръчан</div>
             <div class="plan-name">Pro</div>
@@ -340,13 +418,84 @@
     </div>
 </section>
 
+<!-- CONTACT -->
+<section class="contact-section" id="contact">
+    <div class="contact-card">
+        <h2>📩 Свържете се с нас</h2>
+        <p>Имате въпрос или нужда от помощ? Изпратете ни съобщение и ще отговорим до 24 часа.</p>
+
+        <div class="success-msg" id="successMsg">
+            ✅ Съобщението е изпратено! Ще се свържем с вас до 24 часа.
+        </div>
+
+        <form id="contactForm"
+              th:action="@{/contact}"
+              method="post"
+              onsubmit="handleContactSubmit(event)">
+
+            <label>Вашето ime</label>
+            <input type="text" name="name" placeholder="Иван Иванов" required>
+
+            <label>Имейл адрес</label>
+            <input type="email" name="email" placeholder="ivan@example.com" required>
+
+            <label>Тема</label>
+            <input type="text" name="subject" placeholder="напр. Въпрос за абонамент">
+
+            <label>Съобщение</label>
+            <textarea name="message" placeholder="Опишете вашия въпрос..." required></textarea>
+
+            <button type="submit" class="btn-send">✉️ Изпратете съобщение</button>
+        </form>
+
+        <div class="contact-direct">
+            или пишете директно на
+            <a href="mailto:mariyan_87_vd@abv.bg">mariyan_87_vd@abv.bg</a>
+        </div>
+    </div>
+</section>
+
 <!-- FOOTER -->
 <footer>
     © 2026 GDD — Счетоводна система &nbsp;·&nbsp;
-    <a th:href="@{/login}" style="color:var(--light);text-decoration:none;">Вход</a>
-    &nbsp;·&nbsp;
-    <a th:href="@{/register}" style="color:var(--light);text-decoration:none;">Регистрация</a>
+    <a th:href="@{/login}">Вход</a> &nbsp;·&nbsp;
+    <a th:href="@{/register}">Регистрация</a> &nbsp;·&nbsp;
+    <a href="#contact">Контакт</a>
 </footer>
+
+<script>
+// Smooth scroll за nav линкове
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+});
+
+// Contact form — mailto fallback (без backend)
+function handleContactSubmit(e) {
+    e.preventDefault();
+    const form = document.getElementById('contactForm');
+    const data = new FormData(form);
+    const name    = data.get('name');
+    const email   = data.get('email');
+    const subject = data.get('subject') || 'Запитване от GDD';
+    const message = data.get('message');
+
+    const mailtoLink = `mailto:mariyan_87_vd@abv.bg`
+        + `?subject=${encodeURIComponent(subject + ' (от ' + name + ')') }`
+        + `&body=${encodeURIComponent('Изпратено от: ' + name + '\nИмейл: ' + email + '\n\n' + message)}`;
+
+    window.location.href = mailtoLink;
+
+    // Показваме успешно съобщение
+    document.getElementById('successMsg').style.display = 'block';
+    form.reset();
+}
+</script>
 
 </body>
 </html>
