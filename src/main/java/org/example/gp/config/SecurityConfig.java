@@ -1,11 +1,11 @@
 package org.example.gp.config;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -27,23 +27,23 @@ public class SecurityConfig {
 
         http
             .authorizeHttpRequests(auth -> auth
-                // Публични ресурси
-                .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-                // Error страница — винаги публична
-                .requestMatchers("/error").permitAll()
+                // ERROR dispatching — ТРЯБВА да е първо и да покрива и FORWARD/ERROR типове
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                // Публични статични ресурси
+                .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                 // Заглавна страница — публична
                 .requestMatchers("/").permitAll()
-                // Страница за регистрация на нова кантора — публична
+                // Регистрация — публична
                 .requestMatchers("/register").permitAll()
-                // Stripe webhook — публичен (проверка през подпис, не през login)
+                // Stripe webhook — публичен (сигурност чрез подпис)
                 .requestMatchers("/stripe/webhook").permitAll()
                 // Системен admin панел
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                // Управление на служители — само собственик на кантора
+                // Управление на служители
                 .requestMatchers("/office/**").hasAnyRole("OFFICE", "ADMIN")
-                // Actuator
+                // Actuator — само ADMIN
                 .requestMatchers("/actuator/**").hasRole("ADMIN")
-                // Абонамент — достъпен за всеки логнат потребител на кантора
+                // Абонамент — логнати потребители
                 .requestMatchers("/subscription/**").authenticated()
                 // Всичко останало изисква вход
                 .anyRequest().authenticated()
@@ -62,9 +62,7 @@ public class SecurityConfig {
                 .deleteCookies("JSESSIONID")
                 .permitAll()
             )
-            // Stripe webhook праща raw JSON без CSRF token — изключваме за този path
             .csrf(csrf -> csrf.ignoringRequestMatchers("/stripe/webhook"))
-            // Проверка на абонамент — след автентикация
             .addFilterAfter(subscriptionAccessFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
