@@ -1,12 +1,11 @@
 package org.example.gp.config;
 
-import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -24,30 +23,27 @@ public class SecurityConfig {
     }
 
     /**
-     * Отделен filter chain с ВИСОК приоритет (@Order(1)) само за ERROR dispatches.
-     * Позволява на Tomcat да обработи грешките без Security намеса.
+     * Изключва Security ИЗЦЯЛО за статични ресурси и /error.
+     * Тези пътища не минават през никакъв Security filter.
      */
     @Bean
-    @Order(1)
-    public SecurityFilterChain errorFilterChain(HttpSecurity http) throws Exception {
-        http
-            .securityMatcher(request ->
-                request.getDispatcherType() == DispatcherType.ERROR ||
-                request.getDispatcherType() == DispatcherType.ASYNC)
-            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-            .csrf(csrf -> csrf.disable());
-        return http.build();
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return web -> web.ignoring()
+                .requestMatchers(
+                        "/css/**",
+                        "/js/**",
+                        "/images/**",
+                        "/favicon.ico",
+                        "/webjars/**",
+                        "/error",
+                        "/error/**"
+                );
     }
 
-    /**
-     * Основен filter chain за всички останали заявки.
-     */
     @Bean
-    @Order(2)
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                 .requestMatchers("/").permitAll()
                 .requestMatchers("/register").permitAll()
                 .requestMatchers("/stripe/webhook").permitAll()
