@@ -75,6 +75,7 @@ public class SubscriptionAccessFilter extends OncePerRequestFilter {
                 || path.startsWith("/favicon")
                 || path.startsWith("/actuator")
                 || path.startsWith("/error")
+                || path.startsWith("/change-password")
                 || path.startsWith("/webjars");
     }
 }

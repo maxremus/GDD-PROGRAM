@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-	
-	<meta name="google-site-verification" content="6ZohUkjePKpie6EgaswbE4P81E3R6x_yb7OdiNEjsOU" />
-	<link rel="icon" type="image/png" href="/favicon.png">
     <title>GDD — Счетоводна система за кантори</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -396,7 +393,7 @@
         <div class="plan-card">
             <div class="plan-name">Basic</div>
             <div class="plan-price">15 €</div>
-            
+            <div class="plan-price-sub">на месец</div>
             <ul class="plan-features">
                 <li>До 10 фирми</li>
                 <li>До 2 служители</li>
@@ -409,7 +406,7 @@
             <div class="plan-badge">Препоръчан</div>
             <div class="plan-name">Pro</div>
             <div class="plan-price">25 €</div>
-            
+            <div class="plan-price-sub">на месец</div>
             <ul class="plan-features">
                 <li>До 50 фирми</li>
                 <li>До 10 служители</li>
@@ -453,7 +450,7 @@
 
         <div class="contact-direct">
             или пишете директно на
-            <a href="mailto:gddprogram.support@gmail.com">gddprogram.support@gmail.com</a>
+            <a href="mailto:mariyan_87_vd@abv.bg">mariyan_87_vd@abv.bg</a>
         </div>
     </div>
 </section>
@@ -488,7 +485,7 @@ function handleContactSubmit(e) {
     const subject = data.get('subject') || 'Запитване от GDD';
     const message = data.get('message');
 
-    const mailtoLink = `mailto:gddprogram.support@gmail.com`
+    const mailtoLink = `mailto:mariyan_87_vd@abv.bg`
         + `?subject=${encodeURIComponent(subject + ' (от ' + name + ')') }`
         + `&body=${encodeURIComponent('Изпратено от: ' + name + '\nИмейл: ' + email + '\n\n' + message)}`;
 
