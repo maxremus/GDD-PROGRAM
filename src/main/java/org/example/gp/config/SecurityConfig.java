@@ -23,13 +23,15 @@ public class SecurityConfig {
     }
 
     /**
-     * Изключва Security ИЗЦЯЛО за статични ресурси и /error.
-     * Тези пътища не минават през никакъв Security filter.
+     * Напълно изключва Security за статични ресурси и /error.
+     * Тези пътища не минават през НИКАКЪВ Security filter —
+     * затова не може да получат Access Denied или error loop.
      */
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return web -> web.ignoring()
                 .requestMatchers(
+                        "/",
                         "/css/**",
                         "/js/**",
                         "/images/**",
@@ -44,13 +46,13 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/").permitAll()
                 .requestMatchers("/register").permitAll()
                 .requestMatchers("/stripe/webhook").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/office/**").hasAnyRole("OFFICE", "ADMIN")
                 .requestMatchers("/actuator/**").hasRole("ADMIN")
                 .requestMatchers("/subscription/**").authenticated()
+                .requestMatchers("/change-password").authenticated()
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
