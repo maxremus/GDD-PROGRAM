@@ -101,6 +101,8 @@ public class SubscriptionService {
     // -------------------------------------------------------------------------
     public String createCheckoutSession(Long officeId, PlanType plan, String customerEmail) throws StripeException {
 
+        validatePlanLimits(officeId, plan);
+
         SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
                 .setSuccessUrl(baseUrl + "/subscription/success?session_id={CHECKOUT_SESSION_ID}")
@@ -133,6 +135,7 @@ public class SubscriptionService {
                                         String stripeCustomerId, String stripeSubscriptionId) {
         Long officeId = Long.valueOf(officeIdStr);
         PlanType plan = PlanType.valueOf(planStr);
+        validatePlanLimits(officeId, plan);
 
         Subscription sub = subscriptionRepository.findByOfficeId(officeId)
                 .orElseGet(() -> Subscription.builder().officeId(officeId).createdAt(LocalDateTime.now()).build());
@@ -162,6 +165,24 @@ public class SubscriptionService {
             sub.setUpdatedAt(LocalDateTime.now());
             subscriptionRepository.save(sub);
         });
+    }
+
+
+
+    private void validatePlanLimits(Long officeId, PlanType plan) {
+        long companies = companyRepository.findByOfficeId(officeId).size();
+        if (companies > plan.getMaxCompanies()) {
+            throw new IllegalStateException("Не можете да преминете към " + plan +
+                    ". Имате " + companies + " фирми, а планът позволява максимум " +
+                    plan.getMaxCompanies() + ".");
+        }
+
+        long staff = userRepository.findByOfficeId(officeId).size();
+        if (staff > plan.getMaxStaff()) {
+            throw new IllegalStateException("Не можете да преминете към " + plan +
+                    ". Имате " + staff + " потребители, а планът позволява максимум " +
+                    plan.getMaxStaff() + ".");
+        }
     }
 
     private SubscriptionStatus mapStripeStatus(String stripeStatus) {

@@ -63,6 +63,9 @@ public class SubscriptionController {
             String checkoutUrl = subscriptionService.createCheckoutSession(
                     user.getOfficeId(), plan, null);
             return "redirect:" + checkoutUrl;
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/subscription";
         } catch (StripeException e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                 "Грешка при свързване с платежната система: " + e.getMessage());
