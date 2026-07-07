@@ -10,6 +10,9 @@ RUN mvn package -DskipTests -B
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
+# mariadb-client осигурява mysqldump — нужен за автоматичния backup на базата
+RUN apk add --no-cache mariadb-client
+
 COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080

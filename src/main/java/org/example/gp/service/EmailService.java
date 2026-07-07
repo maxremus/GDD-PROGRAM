@@ -77,4 +77,45 @@ public class EmailService {
             auditLogService.log("system", null, null, "email.failed", "MAIL", to, subject, "-", false, e.getMessage());
         }
     }
+
+    /**
+     * Изпраща имейл с прикачен файл (напр. backup архив на базата).
+     */
+    @Async
+    public void sendWithAttachment(String to, String subject, String templateName,
+                                    Map<String, Object> variables,
+                                    java.io.File attachment, String attachmentName) {
+        if (to == null || to.isBlank()) {
+            return;
+        }
+        if (fromAddress == null || fromAddress.isBlank()) {
+            auditLogService.log("system", null, null, "email.skipped", "MAIL", to,
+                    subject + " (SMTP не е конфигуриран)", "-", true, null);
+            return;
+        }
+
+        try {
+            Context context = new Context();
+            if (variables != null) {
+                context.setVariables(variables);
+            }
+            String html = templateEngine.process("email/" + templateName, context);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(html, true);
+            helper.setFrom(fromAddress, fromName);
+            if (attachment != null && attachment.exists()) {
+                helper.addAttachment(attachmentName, attachment);
+            }
+
+            mailSender.send(message);
+
+            auditLogService.log("system", null, null, "email.sent", "MAIL", to, subject, "-", true, null);
+        } catch (Exception e) {
+            auditLogService.log("system", null, null, "email.failed", "MAIL", to, subject, "-", false, e.getMessage());
+        }
+    }
 }

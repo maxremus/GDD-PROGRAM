@@ -121,6 +121,12 @@
                 🧾 Одит
             </a>
 
+            <a sec:authorize="hasRole('ADMIN')"
+               th:href="@{/admin/backups}"
+               class="btn btn-outline-dark">
+                🗄️ Backup
+            </a>
+
             <!-- Потребителско ime + Изход -->
             <div class="ms-auto d-flex align-items-center gap-2">
                 <span class="text-muted small">
