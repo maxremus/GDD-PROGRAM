@@ -1,5 +1,9 @@
 package org.example.gp.config;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.example.gp.entity.User;
+import org.example.gp.repository.UserRepository;
+import org.example.gp.service.AuditLogService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -17,9 +21,21 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final SubscriptionAccessFilter subscriptionAccessFilter;
+    private final AuditLogService auditLogService;
+    private final UserRepository userRepository;
 
-    public SecurityConfig(SubscriptionAccessFilter subscriptionAccessFilter) {
+    public SecurityConfig(SubscriptionAccessFilter subscriptionAccessFilter,
+                           AuditLogService auditLogService,
+                           UserRepository userRepository) {
         this.subscriptionAccessFilter = subscriptionAccessFilter;
+        this.auditLogService = auditLogService;
+        this.userRepository = userRepository;
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
+        return request.getRemoteAddr();
     }
 
     /**
@@ -58,13 +74,34 @@ public class SecurityConfig {
             .formLogin(form -> form
                 .loginPage("/login")
                 .loginProcessingUrl("/login")
-                .defaultSuccessUrl("/companies", true)
-                .failureUrl("/login?error=true")
+                .successHandler((request, response, authentication) -> {
+                    User user = userRepository.findByUsername(authentication.getName()).orElse(null);
+                    auditLogService.log(authentication.getName(),
+                            user != null ? user.getOfficeId() : null,
+                            user != null ? user.getRole() : null,
+                            "auth.login", "POST", "/login", "-",
+                            clientIp(request), true, null);
+                    response.sendRedirect(request.getContextPath() + "/companies");
+                })
+                .failureHandler((request, response, exception) -> {
+                    String attemptedUser = request.getParameter("username");
+                    auditLogService.log(attemptedUser, null, null,
+                            "auth.login", "POST", "/login", "-",
+                            clientIp(request), false, exception.getMessage());
+                    response.sendRedirect(request.getContextPath() + "/login?error=true");
+                })
                 .permitAll()
             )
             .logout(logout -> logout
                 .logoutUrl("/logout")
-                .logoutSuccessUrl("/login?logout=true")
+                .logoutSuccessHandler((request, response, authentication) -> {
+                    if (authentication != null) {
+                        auditLogService.log(authentication.getName(), null, null,
+                                "auth.logout", "POST", "/logout", "-",
+                                clientIp(request), true, null);
+                    }
+                    response.sendRedirect(request.getContextPath() + "/login?logout=true");
+                })
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
                 .permitAll()

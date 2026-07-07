@@ -115,6 +115,12 @@
                 🔧 Всички кантори
             </a>
 
+            <a sec:authorize="hasRole('ADMIN')"
+               th:href="@{/admin/audit-logs}"
+               class="btn btn-outline-danger">
+                🧾 Одит
+            </a>
+
             <!-- Потребителско ime + Изход -->
             <div class="ms-auto d-flex align-items-center gap-2">
                 <span class="text-muted small">
