@@ -10,14 +10,9 @@ RUN mvn package -DskipTests -B
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
-# mariadb-client осигурява mysqldump — нужен за автоматичния backup на базата.
-# mariadb-plugin-caching-sha2-password е ЗАДЪЛЖИТЕЛЕН, защото MySQL 8 (Aiven и др.)
-# ползва caching_sha2_password като auth plugin по подразбиране, а базовият
-# mariadb-client го няма вграден (води до грешка "Plugin caching_sha2_password
-# could not be loaded"). Alpine-базовият образ НЕ предлага този пакет, затова
-# минаваме на Debian/Ubuntu-базов образ (eclipse-temurin:17-jre-jammy).
+# Инсталира mysqldump
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends mariadb-client mariadb-plugin-caching-sha2-password && \
+    apt-get install -y --no-install-recommends mariadb-client && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/target/*.jar app.jar
