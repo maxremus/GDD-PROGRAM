@@ -26,6 +26,9 @@ public class User {
     @Column(unique = true, nullable = false)
     private String username;
 
+    /** Имейл за известия (регистрация, смяна на парола, абонамент и т.н.) */
+    private String email;
+
     @Column(nullable = false)
     private String password;
 

@@ -6,6 +6,7 @@ import com.stripe.param.checkout.SessionCreateParams;
 import org.example.gp.entity.PlanType;
 import org.example.gp.entity.Subscription;
 import org.example.gp.entity.SubscriptionStatus;
+import org.example.gp.entity.User;
 import org.example.gp.repository.CompanyRepository;
 import org.example.gp.repository.SubscriptionRepository;
 import org.example.gp.repository.UserRepository;
@@ -13,6 +14,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class SubscriptionService {
@@ -22,16 +25,26 @@ public class SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     @Value("${app.base-url}")
     private String baseUrl;
 
     public SubscriptionService(SubscriptionRepository subscriptionRepository,
                                CompanyRepository companyRepository,
-                               UserRepository userRepository) {
+                               UserRepository userRepository,
+                               EmailService emailService) {
         this.subscriptionRepository = subscriptionRepository;
         this.companyRepository = companyRepository;
         this.userRepository = userRepository;
+        this.emailService = emailService;
+    }
+
+    /** Намира собственика (ROLE_OFFICE) на дадена кантора — за адресиране на известия. */
+    private Optional<User> findOfficeOwner(Long officeId) {
+        return userRepository.findByOfficeId(officeId).stream()
+                .filter(u -> "ROLE_OFFICE".equals(u.getRole()))
+                .findFirst();
     }
 
     // -------------------------------------------------------------------------
@@ -147,6 +160,12 @@ public class SubscriptionService {
         sub.setUpdatedAt(LocalDateTime.now());
 
         subscriptionRepository.save(sub);
+
+        findOfficeOwner(officeId).ifPresent(owner ->
+                emailService.send(owner.getEmail(), "Абонаментът е активиран", "subscription-active", Map.of(
+                        "officeName", owner.getOfficeName() != null ? owner.getOfficeName() : "вашата кантора",
+                        "planName", plan.name()
+                )));
     }
 
     public void handleSubscriptionUpdated(String stripeSubscriptionId, String stripeStatus,
@@ -164,6 +183,11 @@ public class SubscriptionService {
             sub.setStatus(SubscriptionStatus.CANCELED);
             sub.setUpdatedAt(LocalDateTime.now());
             subscriptionRepository.save(sub);
+
+            findOfficeOwner(sub.getOfficeId()).ifPresent(owner ->
+                    emailService.send(owner.getEmail(), "Абонаментът е прекратен", "subscription-canceled", Map.of(
+                            "officeName", owner.getOfficeName() != null ? owner.getOfficeName() : "вашата кантора"
+                    )));
         });
     }
 

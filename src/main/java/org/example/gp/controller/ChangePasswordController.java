@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.example.gp.entity.User;
 import org.example.gp.repository.UserRepository;
+import org.example.gp.service.EmailService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,24 +15,50 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+
 @Controller
 public class ChangePasswordController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     @PersistenceContext
     private EntityManager entityManager;
 
     public ChangePasswordController(UserRepository userRepository,
-                                    PasswordEncoder passwordEncoder) {
+                                    PasswordEncoder passwordEncoder,
+                                    EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
 
     @GetMapping("/change-password")
-    public String changePage() {
+    public String changePage(org.springframework.ui.Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            userRepository.findByUsername(auth.getName())
+                    .ifPresent(u -> model.addAttribute("currentEmail", u.getEmail()));
+        }
         return "change-password";
+    }
+
+    @PostMapping("/change-password/email")
+    public String updateEmail(@RequestParam String email, RedirectAttributes redirectAttributes) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = userRepository.findByUsername(auth.getName()).orElse(null);
+        if (user == null) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Потребителят не е намерен.");
+            return "redirect:/change-password";
+        }
+        user.setEmail(email);
+        userRepository.save(user);
+        redirectAttributes.addFlashAttribute("emailSuccessMessage", "Имейлът за известия е запазен.");
+        return "redirect:/change-password";
     }
 
     @PostMapping("/change-password")
@@ -75,6 +102,11 @@ public class ChangePasswordController {
         // Записваме новата хеширана парола
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+
+        emailService.send(user.getEmail(), "Паролата ви беше сменена", "password-changed", Map.of(
+                "username", user.getUsername(),
+                "timestamp", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))
+        ));
 
         redirectAttributes.addFlashAttribute("successMessage",
             "Паролата е сменена успешно! При следващ вход използвайте новата парола.");

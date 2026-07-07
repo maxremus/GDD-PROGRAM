@@ -91,6 +91,13 @@
             </div>
 
             <div class="mb-3">
+                <label>✉️ Имейл за известия</label>
+                <input type="email" th:field="*{email}" class="form-control mt-1"
+                       placeholder="office@example.com" required>
+                <div class="form-text">На него ще получавате известия за акаунта и абонамента.</div>
+            </div>
+
+            <div class="mb-3">
                 <label>🔑 Парола</label>
                 <div class="pw-wrap">
                     <input type="password" id="pw1" th:field="*{password}" class="form-control mt-1"
