@@ -4,24 +4,41 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
+import javax.sql.DataSource;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * Автоматичен backup на MySQL базата чрез mysqldump.
+ * Автоматичен backup на MySQL базата — генерира пълен SQL дъмп директно
+ * през JDBC връзката на приложението (същия драйвер, който вече се ползва
+ * за нормалната работа), без да разчита на външен CLI инструмент.
+ *
+ * Защо не mysqldump: инструментите на mariadb-client (mysqldump/mariadb-dump)
+ * в Alpine образи не носят caching_sha2_password плъгина, който MySQL 8
+ * (напр. Aiven) ползва по подразбиране, и не могат да се свържат. Официалният
+ * MySQL Connector/J (com.mysql.cj.jdbc.Driver), който приложението вече
+ * използва, поддържа caching_sha2_password нативно — затова генерираме
+ * дъмпа изцяло в Java, без нужда от системни пакети в Docker образа.
  *
  * ВАЖНО: На хостинг платформи с ефимерен диск (напр. Render free план)
  * локалните файлове в backup директорията се губят при рестарт/redeploy.
@@ -34,18 +51,14 @@ public class BackupService {
 
     private static final DateTimeFormatter FILE_TS = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
     private static final DateTimeFormatter DISPLAY_TS = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+    private static final int BATCH_SIZE = 500; // редове на INSERT изявление
 
+    private final DataSource dataSource;
     private final EmailService emailService;
     private final AuditLogService auditLogService;
 
     @Value("${spring.datasource.url}")
     private String datasourceUrl;
-
-    @Value("${spring.datasource.username}")
-    private String datasourceUsername;
-
-    @Value("${spring.datasource.password}")
-    private String datasourcePassword;
 
     @Value("${app.backup.dir}")
     private String backupDirPath;
@@ -56,7 +69,8 @@ public class BackupService {
     @Value("${app.backup.notify-email:}")
     private String notifyEmail;
 
-    public BackupService(EmailService emailService, AuditLogService auditLogService) {
+    public BackupService(DataSource dataSource, EmailService emailService, AuditLogService auditLogService) {
+        this.dataSource = dataSource;
         this.emailService = emailService;
         this.auditLogService = auditLogService;
     }
@@ -78,69 +92,169 @@ public class BackupService {
     }
 
     // -------------------------------------------------------------------------
-    // Създава нов backup (mysqldump → gzip). Хвърля IOException при провал.
+    // Създава нов backup (чист JDBC SQL дъмп → gzip). Хвърля Exception при провал.
     // -------------------------------------------------------------------------
-    public Path createBackup() throws IOException, InterruptedException {
+    public Path createBackup() throws IOException, SQLException {
         Path dir = ensureBackupDir();
-
-        String[] conn = parseJdbcUrl(datasourceUrl);
-        String host = conn[0], port = conn[1], dbName = conn[2];
+        String dbName = parseDbNameFromUrl(datasourceUrl);
 
         String timestamp = LocalDateTime.now().format(FILE_TS);
         Path target = dir.resolve("backup_" + dbName + "_" + timestamp + ".sql.gz");
 
-        ProcessBuilder pb = new ProcessBuilder(
-                "mysqldump",
-                "-h", host,
-                "-P", port,
-                "-u", datasourceUsername,
-                "--single-transaction",
-                "--routines",
-                "--events",
-                "--no-tablespaces",
-                dbName
-        );
-        // Подаваме паролата през env, за да не се вижда в списъка на процесите
-        pb.environment().put("MYSQL_PWD", datasourcePassword != null ? datasourcePassword : "");
+        try (Connection conn = dataSource.getConnection()) {
+            conn.setAutoCommit(false); // консистентна снимка за целия дъмп
+            String actualDb = conn.getCatalog() != null ? conn.getCatalog() : dbName;
 
-        Process process = pb.start();
+            try (Writer writer = new OutputStreamWriter(
+                    new GZIPOutputStream(Files.newOutputStream(target)), StandardCharsets.UTF_8)) {
 
-        StringBuilder errorOutput = new StringBuilder();
-        Thread errorReaderThread = new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    errorOutput.append(line).append('\n');
+                writer.write("-- GDD Program — MySQL backup\n");
+                writer.write("-- База: " + actualDb + "\n");
+                writer.write("-- Дата: " + LocalDateTime.now().format(DISPLAY_TS) + "\n\n");
+                writer.write("SET NAMES utf8mb4;\n");
+                writer.write("SET FOREIGN_KEY_CHECKS=0;\n\n");
+
+                List<String> tables = listTables(conn, actualDb);
+                for (String table : tables) {
+                    dumpTable(conn, table, writer);
                 }
-            } catch (IOException ignored) {
-                // потокът е затворен заедно с процеса
+
+                writer.write("SET FOREIGN_KEY_CHECKS=1;\n");
+            } finally {
+                conn.rollback(); // само четем — нищо не трябва да се комитва
             }
-        });
-        errorReaderThread.start();
-
-        try (var stdOut = process.getInputStream();
-             var fileOut = Files.newOutputStream(target);
-             var gzOut = new GZIPOutputStream(fileOut)) {
-            stdOut.transferTo(gzOut);
+        } catch (Exception e) {
+            Files.deleteIfExists(target);
+            if (e instanceof SQLException se) throw se;
+            if (e instanceof IOException ie) throw ie;
+            throw new IOException(e.getMessage(), e);
         }
 
-        boolean finished = process.waitFor(5, TimeUnit.MINUTES);
-        errorReaderThread.join(2000);
-
-        if (!finished) {
-            process.destroyForcibly();
+        if (Files.size(target) == 0) {
             Files.deleteIfExists(target);
-            throw new IOException("mysqldump не завърши в рамките на 5 минути (timeout).");
-        }
-        if (process.exitValue() != 0) {
-            Files.deleteIfExists(target);
-            throw new IOException("mysqldump завърши с грешка (код " + process.exitValue() + "): "
-                    + errorOutput.toString().trim());
+            throw new IOException("Backup файлът излезе празен.");
         }
 
         cleanupOldBackups();
         return target;
+    }
+
+    private List<String> listTables(Connection conn, String dbName) throws SQLException {
+        List<String> tables = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT table_name FROM information_schema.tables " +
+                "WHERE table_schema = ? AND table_type = 'BASE TABLE' ORDER BY table_name")) {
+            ps.setString(1, dbName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    tables.add(rs.getString(1));
+                }
+            }
+        }
+        return tables;
+    }
+
+    private void dumpTable(Connection conn, String table, Writer writer) throws SQLException, IOException {
+        // --- схема ---
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SHOW CREATE TABLE `" + table + "`")) {
+            if (rs.next()) {
+                writer.write("DROP TABLE IF EXISTS `" + table + "`;\n");
+                writer.write(rs.getString(2) + ";\n\n");
+            }
+        }
+
+        // --- данни ---
+        try (Statement st = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+            st.setFetchSize(BATCH_SIZE);
+            try (ResultSet rs = st.executeQuery("SELECT * FROM `" + table + "`")) {
+                ResultSetMetaData meta = rs.getMetaData();
+                int columnCount = meta.getColumnCount();
+                String columnList = buildColumnList(meta, columnCount);
+
+                List<String> rowsBuffer = new ArrayList<>(BATCH_SIZE);
+                while (rs.next()) {
+                    rowsBuffer.add(buildValueTuple(rs, meta, columnCount));
+                    if (rowsBuffer.size() >= BATCH_SIZE) {
+                        writeInsert(writer, table, columnList, rowsBuffer);
+                        rowsBuffer.clear();
+                    }
+                }
+                if (!rowsBuffer.isEmpty()) {
+                    writeInsert(writer, table, columnList, rowsBuffer);
+                }
+            }
+        }
+        writer.write("\n");
+    }
+
+    private String buildColumnList(ResultSetMetaData meta, int columnCount) throws SQLException {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= columnCount; i++) {
+            if (i > 1) sb.append(", ");
+            sb.append('`').append(meta.getColumnName(i)).append('`');
+        }
+        return sb.toString();
+    }
+
+    private String buildValueTuple(ResultSet rs, ResultSetMetaData meta, int columnCount) throws SQLException {
+        StringBuilder sb = new StringBuilder("(");
+        for (int i = 1; i <= columnCount; i++) {
+            if (i > 1) sb.append(", ");
+            sb.append(formatValue(rs, meta.getColumnType(i), i));
+        }
+        return sb.append(')').toString();
+    }
+
+    private String formatValue(ResultSet rs, int sqlType, int index) throws SQLException {
+        switch (sqlType) {
+            case Types.BLOB:
+            case Types.BINARY:
+            case Types.VARBINARY:
+            case Types.LONGVARBINARY: {
+                byte[] bytes = rs.getBytes(index);
+                if (rs.wasNull() || bytes == null) return "NULL";
+                StringBuilder hex = new StringBuilder("0x");
+                for (byte b : bytes) hex.append(String.format("%02x", b));
+                return hex.toString();
+            }
+            case Types.BOOLEAN:
+            case Types.BIT: {
+                boolean v = rs.getBoolean(index);
+                return rs.wasNull() ? "NULL" : (v ? "1" : "0");
+            }
+            case Types.INTEGER:
+            case Types.BIGINT:
+            case Types.SMALLINT:
+            case Types.TINYINT:
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+            case Types.DOUBLE:
+            case Types.FLOAT: {
+                String v = rs.getString(index);
+                return (rs.wasNull() || v == null) ? "NULL" : v;
+            }
+            default: {
+                String v = rs.getString(index);
+                if (rs.wasNull() || v == null) return "NULL";
+                return "'" + escapeSql(v) + "'";
+            }
+        }
+    }
+
+    private String escapeSql(String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("'", "\\'")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\0", "");
+    }
+
+    private void writeInsert(Writer writer, String table, String columnList, List<String> valueTuples) throws IOException {
+        writer.write("INSERT INTO `" + table + "` (" + columnList + ") VALUES\n");
+        writer.write(String.join(",\n", valueTuples));
+        writer.write(";\n");
     }
 
     // -------------------------------------------------------------------------
@@ -211,25 +325,17 @@ public class BackupService {
         return dir;
     }
 
-    /** Извлича host, port, database ime от JDBC URL от вида jdbc:mysql://host:port/dbname?params */
-    private String[] parseJdbcUrl(String jdbcUrl) {
-        String withoutPrefix = jdbcUrl.replaceFirst("^jdbc:mysql://", "");
-        String hostPortAndPath = withoutPrefix;
-        int slashIdx = hostPortAndPath.indexOf('/');
-        String hostPort = slashIdx >= 0 ? hostPortAndPath.substring(0, slashIdx) : hostPortAndPath;
-        String pathAndQuery = slashIdx >= 0 ? hostPortAndPath.substring(slashIdx + 1) : "";
-        String dbName = pathAndQuery.contains("?") ? pathAndQuery.substring(0, pathAndQuery.indexOf('?')) : pathAndQuery;
-
-        String host;
-        String port = "3306";
-        if (hostPort.contains(":")) {
-            String[] parts = hostPort.split(":");
-            host = parts[0];
-            port = parts[1];
-        } else {
-            host = hostPort;
+    /** Извлича database ime от JDBC URL от вида jdbc:mysql://host:port/dbname?params (само за ime на файла). */
+    private String parseDbNameFromUrl(String jdbcUrl) {
+        try {
+            String withoutPrefix = jdbcUrl.replaceFirst("^jdbc:mysql://", "");
+            int slashIdx = withoutPrefix.indexOf('/');
+            String pathAndQuery = slashIdx >= 0 ? withoutPrefix.substring(slashIdx + 1) : "";
+            String dbName = pathAndQuery.contains("?") ? pathAndQuery.substring(0, pathAndQuery.indexOf('?')) : pathAndQuery;
+            return (dbName == null || dbName.isBlank()) ? "gdd" : dbName;
+        } catch (Exception e) {
+            return "gdd";
         }
-        return new String[]{host, port, dbName};
     }
 
     public static String humanReadableSize(long bytes) {
