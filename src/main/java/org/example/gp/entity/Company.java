@@ -65,6 +65,12 @@ public class Company {
     public void setArchivedAt(java.time.LocalDateTime archivedAt) { this.archivedAt = archivedAt; }
 
 
+    @Transient
+    private String workedNote;
+
+    public String getWorkedNote() { return workedNote; }
+    public void setWorkedNote(String workedNote) { this.workedNote = workedNote; }
+
     public Long getWorkedId() { return workedId; }
     public void setWorkedId(Long workedId) { this.workedId = workedId; }
 

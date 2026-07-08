@@ -24,6 +24,13 @@ public class CompanyWorked {
     @Enumerated(EnumType.STRING)
     private FilingStatusMore status;
 
+    /** Бележка — докъде е стигнал счетоводителят или какво липсва за довършване. */
+    @Column(length = 1000)
+    private String note;
+
+    public String getNote() { return note; }
+    public void setNote(String note) { this.note = note; }
+
 
     public Long getId() {
         return id;

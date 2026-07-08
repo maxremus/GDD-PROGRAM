@@ -283,9 +283,11 @@ public class CompanyController {
                 CompanyWorked w = workedMap.get(c.getId());
                 temp.setStatistics2(w.getStatus());
                 temp.setWorkedId(w.getId());
+                temp.setWorkedNote(w.getNote());
             } else {
                 temp.setStatistics2(FilingStatusMore.EMPTY);
                 temp.setWorkedId(null);
+                temp.setWorkedNote(null);
             }
 
             result.add(temp);
@@ -305,6 +307,7 @@ public class CompanyController {
     @PostMapping("/update-worked")
     public String updateWorked(@RequestParam Long id,
                                @RequestParam FilingStatusMore status,
+                               @RequestParam(required = false) String note,
                                @RequestParam Integer month,
                                @RequestParam Integer year) {
 
@@ -321,6 +324,7 @@ public class CompanyController {
         });
 
         w.setStatus(status);
+        w.setNote(note);
         companyWorkedRepository.save(w);
 
         return "redirect:/companies/worked?month=" + month + "&year=" + year;
