@@ -324,7 +324,7 @@ public class CompanyController {
         });
 
         w.setStatus(status);
-        w.setNote(note);
+        w.setNote(status == FilingStatusMore.YES ? null : note);
         companyWorkedRepository.save(w);
 
         return "redirect:/companies/worked?month=" + month + "&year=" + year;

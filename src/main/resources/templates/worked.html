@@ -84,6 +84,15 @@
             background-color: #dddddd !important;
         }
 
+        .note-row td {
+            background-color: #fff3b0 !important;
+            transition: 0.2s;
+        }
+
+        .note-row:hover td {
+            background-color: #ffe98a !important;
+        }
+
         .btn-custom {
             border-radius: 10px;
             font-weight: 600;
@@ -223,7 +232,10 @@
                     <tr th:each="c : ${companies}"
 
                         th:class="${
-                            c.statistics2 != null ?
+                            (c.workedNote != null and !#strings.isEmpty(c.workedNote)) ?
+                                'note-row' :
+
+                            (c.statistics2 != null ?
 
                             (c.statistics2.toString() == 'YES' ?
                                 'yes-row' :
@@ -232,7 +244,7 @@
                                     'no-row' :
                                     'empty-row'))
 
-                            : 'empty-row'
+                            : 'empty-row')
                         }">
 
                         <!-- COMPANY -->
