@@ -432,6 +432,34 @@
                             </div>
                         </div>
 
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h5>📊 Импорт на фирми от Excel (.xlsx)</h5>
+                                <p class="text-muted small mb-2">
+                                    Колони: Ime, Година, Статистика, Чл.73 ал.1, Чл.73 ал.6,
+                                    Годишна декларация, Декларация 6.
+                                    <a th:href="@{/companies/import-excel/template}">⬇️ Изтегли шаблон</a>
+                                </p>
+
+                                <form th:action="@{/companies/import-excel}"
+                                      method="post"
+                                      enctype="multipart/form-data">
+
+                                    <div class="input-group">
+                                        <input type="file"
+                                               name="file"
+                                               class="form-control"
+                                               accept=".xlsx"
+                                               required>
+
+                                        <button class="btn btn-success" type="submit">
+                                            ⬆️ Импорт от Excel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
 
                     <!-- Form Buttons -->
                     <div class="mt-4">

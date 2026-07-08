@@ -10,6 +10,7 @@ import org.example.gp.repository.CompanyRepository;
 import org.example.gp.repository.CompanyWorkedRepository;
 import org.example.gp.service.CompanyService;
 import org.example.gp.service.CompanyWorkedService;
+import org.example.gp.service.ExcelImportService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -29,15 +30,18 @@ public class CompanyController {
     private final CompanyRepository companyRepository;
     private final CompanyWorkedRepository companyWorkedRepository;
     private final CompanyWorkedService companyWorkedService;
+    private final ExcelImportService excelImportService;
 
     public CompanyController(CompanyService companyService,
                              CompanyRepository companyRepository,
                              CompanyWorkedRepository companyWorkedRepository,
-                             CompanyWorkedService companyWorkedService) {
+                             CompanyWorkedService companyWorkedService,
+                             ExcelImportService excelImportService) {
         this.companyService = companyService;
         this.companyRepository = companyRepository;
         this.companyWorkedRepository = companyWorkedRepository;
         this.companyWorkedService = companyWorkedService;
+        this.excelImportService = excelImportService;
     }
 
     // -------------------------------------------------------------------------
@@ -158,6 +162,49 @@ public class CompanyController {
         ModelAndView mav = new ModelAndView("companies-archived");
         mav.addObject("companies", companyService.getArchivedCompanies());
         return mav;
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICE')")
+    @PostMapping("/import-excel")
+    public String importCompaniesExcel(@RequestParam("file") MultipartFile file,
+                                       RedirectAttributes redirectAttributes) {
+        try {
+            ExcelImportService.ParseResult parsed = excelImportService.parse(file);
+
+            if (!parsed.companies.isEmpty()) {
+                companyService.importCompanies(parsed.companies);
+            }
+
+            StringBuilder message = new StringBuilder();
+            message.append("Импортирани фирми: ").append(parsed.companies.size()).append(".");
+            if (!parsed.errors.isEmpty()) {
+                message.append(" Пропуснати редове: ").append(parsed.errors.size()).append(".");
+            }
+
+            if (parsed.companies.isEmpty() && !parsed.errors.isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage",
+                        "Няма импортирани фирми. " + String.join(" ", parsed.errors));
+            } else if (!parsed.errors.isEmpty()) {
+                redirectAttributes.addFlashAttribute("successMessage",
+                        message + " Детайли: " + String.join(" ", parsed.errors));
+            } else {
+                redirectAttributes.addFlashAttribute("successMessage", message.toString());
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Грешка при четене на Excel файла: " + e.getMessage());
+        }
+        return "redirect:/companies";
+    }
+
+    @GetMapping("/import-excel/template")
+    public org.springframework.http.ResponseEntity<byte[]> downloadExcelTemplate() throws java.io.IOException {
+        byte[] content = excelImportService.generateTemplate();
+        return org.springframework.http.ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"shablon-import-firmi.xlsx\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(content);
     }
 
     // -------------------------------------------------------------------------
