@@ -129,6 +129,37 @@ public class CompanyController {
         return "redirect:/companies";
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICE')")
+    @PostMapping("/archive/{id}")
+    public String archiveCompany(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            companyService.archiveCompany(id);
+            redirectAttributes.addFlashAttribute("successMessage", "Фирмата е архивирана.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Грешка при архивиране: " + e.getMessage());
+        }
+        return "redirect:/companies";
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','OFFICE')")
+    @PostMapping("/restore/{id}")
+    public String restoreCompany(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            companyService.restoreCompany(id);
+            redirectAttributes.addFlashAttribute("successMessage", "Фирмата е възстановена от архива.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Грешка при възстановяване: " + e.getMessage());
+        }
+        return "redirect:/companies/archived";
+    }
+
+    @GetMapping("/archived")
+    public ModelAndView archivedCompanies() {
+        ModelAndView mav = new ModelAndView("companies-archived");
+        mav.addObject("companies", companyService.getArchivedCompanies());
+        return mav;
+    }
+
     // -------------------------------------------------------------------------
     // GET /companies — филтрирането се случва в CompanyImp.getAllCompanies()
     // -------------------------------------------------------------------------

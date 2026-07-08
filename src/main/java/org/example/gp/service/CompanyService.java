@@ -26,4 +26,10 @@ public interface CompanyService {
     void copyCompaniesToNextYear(String currentYear, String nextYear);
 
     void importCompanies(List<CompanyImportDto> companies);
+
+    void archiveCompany(Long id);
+
+    void restoreCompany(Long id);
+
+    List<Company> getArchivedCompanies();
 }

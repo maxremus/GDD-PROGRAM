@@ -51,6 +51,20 @@ public class Company {
 
     private Integer month;
 
+    /** Архивирана фирма — скрита от основните списъци, но не се трие. */
+    @Column(name = "archived", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean archived = false;
+
+    private java.time.LocalDateTime archivedAt;
+
+    public boolean isArchived() { return archived; }
+    public void setArchived(boolean archived) { this.archived = archived; }
+
+    public java.time.LocalDateTime getArchivedAt() { return archivedAt; }
+    public void setArchivedAt(java.time.LocalDateTime archivedAt) { this.archivedAt = archivedAt; }
+
+
     public Long getWorkedId() { return workedId; }
     public void setWorkedId(Long workedId) { this.workedId = workedId; }
 

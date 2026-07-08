@@ -108,6 +108,12 @@
                 💳 Абонамент
             </a>
 
+            <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')"
+               th:href="@{/companies/archived}"
+               class="btn btn-outline-secondary">
+                📦 Архив
+            </a>
+
             <!-- Системен admin -->
             <a sec:authorize="hasRole('ADMIN')"
                th:href="@{/admin/users}"
@@ -602,6 +608,13 @@
                                        class="btn btn-sm btn-warning me-1">
                                         ✏️
                                     </a>
+
+                                    <form th:action="@{/companies/archive/{id}(id=${company.id})}"
+                                          method="post"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Да архивирам ли тази фирма? Ще бъде скрита от списъка, но не се трие.');">
+                                        <button type="submit" class="btn btn-sm btn-secondary me-1" title="Архивирай">📦</button>
+                                    </form>
 
                                     <form th:action="@{/companies/delete/{id}(id=${company.id})}"
                                           method="post"
