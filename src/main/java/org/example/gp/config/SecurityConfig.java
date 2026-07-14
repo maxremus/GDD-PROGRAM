@@ -6,10 +6,13 @@ import org.example.gp.repository.UserRepository;
 import org.example.gp.service.AuditLogService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -63,6 +66,7 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/register").permitAll()
+                .requestMatchers("/forgot-password", "/reset-password").permitAll()
                 .requestMatchers("/stripe/webhook").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/office/**").hasAnyRole("OFFICE", "ADMIN")
@@ -105,6 +109,22 @@ public class SecurityConfig {
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
                 .permitAll()
+            )
+            .exceptionHandling(ex -> ex
+                // Неавтентикиран потребител опитва защитен ресурс (изтекла сесия, директен линк и т.н.)
+                .authenticationEntryPoint((request, response, authException) ->
+                        response.sendRedirect(request.getContextPath() + "/login?expired=true"))
+                // 403 Forbidden — или изтекла сесия/CSRF токен (анонимен), или реално недостатъчни права (логнат)
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                    boolean isAuthenticated = auth != null && auth.isAuthenticated()
+                            && !(auth instanceof AnonymousAuthenticationToken);
+                    if (isAuthenticated) {
+                        response.sendRedirect(request.getContextPath() + "/companies?accessDenied=true");
+                    } else {
+                        response.sendRedirect(request.getContextPath() + "/login?expired=true");
+                    }
+                })
             )
             .csrf(csrf -> csrf.ignoringRequestMatchers("/stripe/webhook"))
             .addFilterAfter(subscriptionAccessFilter, UsernamePasswordAuthenticationFilter.class);

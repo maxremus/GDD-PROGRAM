@@ -71,6 +71,10 @@
 
 <body>
     <div class="container mt-4">
+        <div th:if="${param.accessDenied}" class="alert alert-warning alert-dismissible fade show">
+            ⛔ Нямате права за последното действие.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
         <h1 class="mb-4 text-center">🏢 Система за приключване на година</h1>
 
         <div class="d-flex gap-3 align-items-center flex-wrap">

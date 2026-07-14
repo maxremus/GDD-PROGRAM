@@ -56,6 +56,12 @@
         <div th:if="${param.registered}" class="alert alert-success py-2 mb-3">
             ✅ Регистрацията е успешна! Вече може да влезете.
         </div>
+        <div th:if="${param.expired}" class="alert alert-warning py-2 mb-3">
+            ⏳ Сесията ви е изтекла (дълго бездействие). Моля, влезте отново.
+        </div>
+        <div th:if="${param.resetSuccess}" class="alert alert-success py-2 mb-3">
+            ✅ Паролата е сменена успешно! Вече може да влезете с новата парола.
+        </div>
 
         <form th:action="@{/login}" method="post">
             <div class="mb-3">
@@ -63,10 +69,15 @@
                 <input type="text" name="username" class="form-control"
                        placeholder="Въведете потребителско ime" required autofocus>
             </div>
-            <div class="mb-4">
+            <div class="mb-2">
                 <label class="form-label fw-semibold">Парола</label>
                 <input type="password" name="password" class="form-control"
                        placeholder="Въведете парола" required>
+            </div>
+            <div class="text-end mb-4">
+                <a th:href="@{/forgot-password}" style="font-size:.85rem;color:#667eea;text-decoration:none;">
+                    Забравена парола?
+                </a>
             </div>
             <div class="d-grid mb-3">
                 <button type="submit" class="btn text-white btn-login">🔐 Вход</button>
