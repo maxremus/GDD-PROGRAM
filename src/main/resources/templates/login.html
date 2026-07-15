@@ -35,6 +35,13 @@
             transition: background .2s;
         }
         .register-link:hover { background: #e8edff; color: #5a6fd6; }
+        .password-wrapper { position: relative; }
+        .password-toggle {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; font-size: 1.1rem;
+            color: #999; padding: 4px 6px; line-height: 1;
+        }
+        .password-toggle:hover { color: #667eea; }
     </style>
 </head>
 <body>
@@ -71,8 +78,11 @@
             </div>
             <div class="mb-2">
                 <label class="form-label fw-semibold">Парола</label>
-                <input type="password" name="password" class="form-control"
-                       placeholder="Въведете парола" required>
+                <div class="password-wrapper">
+                    <input type="password" name="password" id="loginPassword" class="form-control pe-5"
+                           placeholder="Въведете парола" required>
+                    <button type="button" class="password-toggle" onclick="toggleLoginPassword()" aria-label="Покажи/скрий паролата">👁️</button>
+                </div>
             </div>
             <div class="text-end mb-4">
                 <a th:href="@{/forgot-password}" style="font-size:.85rem;color:#667eea;text-decoration:none;">
@@ -90,5 +100,19 @@
             🏢 Регистрирайте вашата кантора
         </a>
     </div>
+
+    <script>
+        function toggleLoginPassword() {
+            const input = document.getElementById('loginPassword');
+            const btn = event.currentTarget;
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁️';
+            }
+        }
+    </script>
 </body>
 </html>

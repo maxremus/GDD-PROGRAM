@@ -55,6 +55,8 @@ public class SecurityConfig {
                         "/js/**",
                         "/images/**",
                         "/favicon.ico",
+                        "/robots.txt",
+                        "/sitemap.xml",
                         "/webjars/**",
                         "/error",
                         "/error/**"

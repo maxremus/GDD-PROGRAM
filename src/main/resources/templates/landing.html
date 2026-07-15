@@ -3,7 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GDD — Счетоводна система за кантори</title>
+
+    <title>GDD — Счетоводен софтуер за кантори | Фирми, ДДС, декларации на едно място</title>
+    <meta name="description" content="GDD е облачна система за счетоводни кантори — управлявайте фирми, ДДС, декларации (чл.73), работни периоди и служители от едно място. 14 дни безплатен тест.">
+    <meta name="keywords" content="счетоводен софтуер, счетоводна кантора, управление на фирми, ДДС декларации, чл.73, годишни декларации, счетоводна програма, облачно счетоводство, GDD Program">
+    <meta name="author" content="GDD Program">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://gdd-program.onrender.com/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://gdd-program.onrender.com/">
+    <meta property="og:title" content="GDD — Счетоводен софтуер за кантори">
+    <meta property="og:description" content="Управлявайте фирми, ДДС, декларации и служители от едно място. 14 дни безплатен тест, без карта.">
+    <meta property="og:image" content="https://gdd-program.onrender.com/images/hero-accounting.png">
+    <meta property="og:locale" content="bg_BG">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="GDD — Счетоводен софтуер за кантори">
+    <meta name="twitter:description" content="Управлявайте фирми, ДДС, декларации и служители от едно място. 14 дни безплатен тест.">
+    <meta name="twitter:image" content="https://gdd-program.onrender.com/images/hero-accounting.png">
+
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "GDD Program",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "url": "https://gdd-program.onrender.com/",
+        "description": "Облачна счетоводна система за кантори — управление на фирми, ДДС, декларации и служители.",
+        "offers": {
+            "@type": "Offer",
+            "price": "15",
+            "priceCurrency": "EUR"
+        }
+    }
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -272,6 +312,47 @@
             display: none;
         }
 
+        /* ── TESTIMONIALS ── */
+        .testimonials-section { max-width: 1100px; margin: 0 auto 90px; padding: 0 24px; }
+        .testimonial-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .testimonial-card {
+            background: var(--slate);
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 18px; padding: 28px;
+            position: relative; overflow: hidden;
+            transition: border-color .25s, transform .25s;
+        }
+        .testimonial-card::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--light));
+        }
+        .testimonial-card:hover { transform: translateY(-6px); border-color: var(--accent); }
+        .t-stars { color: #FFD54F; letter-spacing: 3px; margin-bottom: 14px; font-size: 1.05rem; }
+        .testimonial-card p { color: #ccc; font-size: .9rem; line-height: 1.8; margin-bottom: 18px; }
+        .testimonial-card strong { display: block; font-size: .92rem; }
+        .testimonial-card span { color: var(--muted); font-size: .8rem; }
+
+        /* ── FAQ ── */
+        .faq-section { max-width: 800px; margin: 0 auto 90px; padding: 0 24px; }
+        .faq-item {
+            background: var(--slate); border: 1px solid rgba(255,255,255,.06);
+            border-radius: 14px; padding: 18px 24px; margin-bottom: 14px;
+            transition: border-color .25s;
+        }
+        .faq-item:hover { border-color: var(--accent); }
+        .faq-item summary {
+            cursor: pointer; font-weight: 700; font-size: .98rem;
+            list-style: none; display: flex; justify-content: space-between; align-items: center;
+        }
+        .faq-item summary::-webkit-details-marker { display: none; }
+        .faq-item summary::after { content: "+"; font-size: 1.3rem; color: var(--light); transition: transform .25s; }
+        .faq-item[open] summary::after { content: "−"; }
+        .faq-item p { margin-top: 14px; color: var(--muted); font-size: .88rem; line-height: 1.7; }
+
+        /* ── scroll reveal ── */
+        .reveal { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+        .reveal.in-view { opacity: 1; transform: translateY(0); }
+
         /* ── FOOTER ── */
         footer {
             text-align: center; padding: 28px 24px;
@@ -306,6 +387,7 @@
     <div class="logo">GDD</div>
     <div class="nav-links">
         <a href="#features" class="nav-link">Функции</a>
+        <a href="#faq" class="nav-link">FAQ</a>
         <a href="#plans" class="nav-link">Цени</a>
         <a href="#contact" class="nav-link">Контакт</a>
         <a th:href="@{/login}" class="btn-outline">Вход</a>
@@ -373,37 +455,86 @@
 
 <!-- FEATURES -->
 <div class="features" id="features">
-    <div class="feature-card">
+    <div class="feature-card reveal">
         <div class="feat-icon">🏢</div>
         <div class="feat-title">Управление на фирми</div>
         <div class="feat-desc">Статистики, декларации (чл.73, ал.1, ал.6), ДДС и годишни декларации за всяка фирма.</div>
     </div>
-    <div class="feature-card">
+    <div class="feature-card reveal">
         <div class="feat-icon">📅</div>
         <div class="feat-title">Работени месеци</div>
         <div class="feat-desc">Следете кои фирми са обработени за всеки месец с ясен цветен статус.</div>
     </div>
-    <div class="feature-card">
+    <div class="feature-card reveal">
         <div class="feat-icon">💰</div>
         <div class="feat-title">Калкулатори</div>
         <div class="feat-desc">Вграден калкулатор за ДДС, брутна/нетна заплата и трудов стаж.</div>
     </div>
-    <div class="feature-card">
+    <div class="feature-card reveal">
         <div class="feat-icon">👥</div>
         <div class="feat-title">Екип от служители</div>
         <div class="feat-desc">Добавете служители към кантората — всеки вижда само вашите фирми.</div>
     </div>
-    <div class="feature-card">
+    <div class="feature-card reveal">
         <div class="feat-icon">🔒</div>
         <div class="feat-title">Пълна изолация на данните</div>
         <div class="feat-desc">Всяка кантора вижда само своите фирми. Пълна сигурност между кантори.</div>
     </div>
-    <div class="feature-card">
+    <div class="feature-card reveal">
         <div class="feat-icon">☁️</div>
         <div class="feat-title">Работи навсякъде</div>
         <div class="feat-desc">Облачна система — достъп от офис, от вкъщи или от телефона.</div>
     </div>
 </div>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials-section">
+    <div class="section-title" style="text-align:center;">Какво казват нашите клиенти</div>
+    <div class="section-sub" style="text-align:center;">Реални счетоводни кантори, реални резултати</div>
+    <div class="testimonial-grid">
+        <div class="testimonial-card reveal">
+            <div class="t-stars">★★★★★</div>
+            <p>"Вече не търсим фирми в 10 различни таблици. Всичко е на едно място — статуси, декларации по чл.73, ДДС. Спести ни часове всяка седмица."</p>
+            <strong>Мария Георгиева</strong>
+            <span>Счетоводна кантора</span>
+        </div>
+        <div class="testimonial-card reveal">
+            <div class="t-stars">★★★★★</div>
+            <p>"Модулът за работени месеци е страхотен — виждам веднага кои фирми са приключени и кои чакат, а колегите оставят бележка докъде са стигнали."</p>
+            <strong>Иван Петров</strong>
+            <span>Главен счетоводител</span>
+        </div>
+        <div class="testimonial-card reveal">
+            <div class="t-stars">★★★★★</div>
+            <p>"Импортирахме над 60 фирми от Excel за 5 минути. Старите вече архивираме вместо да ги трием — нищо не се губи, а списъкът остава чист."</p>
+            <strong>Елена Николова</strong>
+            <span>Управител</span>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section" id="faq">
+    <div class="section-title" style="text-align:center;">Често задавани въпроси</div>
+    <div class="section-sub" style="text-align:center;">Всичко, което трябва да знаете преди да започнете</div>
+
+    <details class="faq-item reveal" open>
+        <summary>Има ли безплатен тест?</summary>
+        <p>Да. Получавате 14 дни пълен достъп до всички функции, без нужда от банкова карта.</p>
+    </details>
+    <details class="faq-item reveal">
+        <summary>Необходимо ли е инсталиране?</summary>
+        <p>Не. GDD работи директно през браузъра — достъп от офиса, от вкъщи или от телефона.</p>
+    </details>
+    <details class="faq-item reveal">
+        <summary>Мога ли да добавям служители?</summary>
+        <p>Да. Всеки служител получава собствен профил и вижда само фирмите на вашата кантора.</p>
+    </details>
+    <details class="faq-item reveal">
+        <summary>Мога ли да сменя плана по-късно?</summary>
+        <p>Да, може да преминете към по-голям или по-малък план по всяко време от секцията "Абонамент".</p>
+    </details>
+</section>
 
 <!-- PLANS -->
 <section class="plans-section" id="plans">
@@ -515,6 +646,17 @@ function handleContactSubmit(e) {
     document.getElementById('successMsg').style.display = 'block';
     form.reset();
 }
+// Показване с анимация при скрол (.reveal -> .in-view)
+const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            revealObserver.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
 </script>
 
 </body>

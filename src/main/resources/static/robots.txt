@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /office/
+Disallow: /companies/
+Disallow: /change-password
+Disallow: /subscription/
+Disallow: /actuator/
+
+Sitemap: https://gdd-program.onrender.com/sitemap.xml
