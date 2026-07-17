@@ -24,7 +24,7 @@ WORKDIR /app
 #
 # Това е стандартна, широко документирана и безопасна промяна — mysql-connector-j
 # (JDBC драйверът на приложението) поддържа и двата плъгина еднакво добре.
-RUN apk add --no-cache mariadb-client
+RUN apk add --no-cache mariadb-client tesseract-ocr tesseract-ocr-data-bul tesseract-ocr-data-eng
 
 COPY --from=build /app/target/*.jar app.jar
 

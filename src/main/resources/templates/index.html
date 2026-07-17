@@ -113,6 +113,12 @@
             </a>
 
             <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')"
+               th:href="@{/documents}"
+               class="btn btn-outline-primary">
+                📷 Документи
+            </a>
+
+            <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')"
                th:href="@{/companies/archived}"
                class="btn btn-outline-secondary">
                 📦 Архив

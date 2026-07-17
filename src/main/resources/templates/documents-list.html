@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Сканирани документи</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f6fb; }
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border-radius: 14px;
+            padding: 22px 28px; margin-bottom: 24px;
+        }
+        .card { border: none; border-radius: 14px; box-shadow: 0 2px 16px rgba(0,0,0,.07); }
+        .doc-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 18px;
+        }
+        .doc-card {
+            background: white; border-radius: 14px; overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,.07); transition: .2s;
+        }
+        .doc-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+        .doc-thumb {
+            width: 100%; height: 160px; object-fit: cover; background: #eee; cursor: pointer;
+            display: block;
+        }
+        .doc-body { padding: 12px; }
+        .doc-company { font-weight: 600; font-size: .88rem; }
+        .doc-meta { font-size: .75rem; color: #888; }
+        .doc-note { font-size: .8rem; color: #555; margin-top: 4px; }
+        .status-badge { font-size: .7rem; }
+    </style>
+</head>
+<body>
+<div class="container-fluid py-4 px-4">
+
+    <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h4 class="mb-0 fw-bold">📄 Сканирани документи</h4>
+            <small class="opacity-75">Снимки на фактури и касови бележки, качени от служителите</small>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-success btn-sm" onclick="exportSelected()">📤 Експортирай избраните</button>
+            <a th:href="@{/documents/scan}" class="btn btn-light btn-sm">📷 Сканирай нов</a>
+        </div>
+    </div>
+
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+        ✅ <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+        ❌ <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <form method="get" th:action="@{/documents}" class="d-flex gap-2 align-items-center flex-wrap">
+                <label class="fw-semibold small mb-0">Филтър по фирма:</label>
+                <select name="companyId" class="form-select form-select-sm" style="max-width:280px;" onchange="this.form.submit()">
+                    <option value="">— всички фирми —</option>
+                    <option th:each="c : ${companies}" th:value="${c.id}" th:text="${c.name} + ' (' + ${c.year} + ')'"
+                            th:selected="${c.id == selectedCompanyId}"></option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <div class="doc-grid" th:if="${!#lists.isEmpty(documents)}">
+        <div class="doc-card" th:each="doc : ${documents}">
+            <div class="position-relative">
+                <input type="checkbox" class="doc-checkbox form-check-input position-absolute"
+                       style="top:8px;left:8px;width:20px;height:20px;z-index:2;"
+                       th:value="${doc.id}">
+                <img th:if="${#strings.startsWith(doc.contentType,'image/')}"
+                     th:src="@{'/documents/' + ${doc.id} + '/image'}"
+                     class="doc-thumb" alt="документ"
+                     th:onclick="'window.open(\'' + @{'/documents/' + ${doc.id} + '/image'} + '\', \'_blank\')'">
+                <div th:unless="${#strings.startsWith(doc.contentType,'image/')}"
+                     class="doc-thumb d-flex align-items-center justify-content-center" style="font-size:2.5rem;">
+                    📎
+                </div>
+            </div>
+            <div class="doc-body">
+                <div class="doc-company" th:text="${doc.companyName != null ? doc.companyName : 'Без фирма'}"></div>
+                <div class="doc-meta" th:text="${#temporals.format(doc.uploadedAt, 'dd.MM.yyyy HH:mm')} + ' · ' + ${doc.uploadedBy}"></div>
+                <div class="doc-note" th:if="${doc.note != null and !#strings.isEmpty(doc.note)}" th:text="${doc.note}"></div>
+                <div class="doc-note" th:if="${doc.partnerName != null}">
+                    <strong th:text="${doc.partnerName}"></strong>
+                    <span th:if="${doc.totalAmount != null}" th:text="' · ' + ${doc.totalAmount} + ' лв.'"></span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="badge status-badge"
+                          th:classappend="${doc.status.name() == 'NEW' ? 'bg-warning text-dark' : (doc.status.name() == 'REVIEWED' ? 'bg-info text-dark' : 'bg-success')}"
+                          th:text="${doc.status.name() == 'NEW' ? 'Ново' : (doc.status.name() == 'REVIEWED' ? 'Прегледано' : 'Експортирано')}">
+                    </span>
+                    <div class="d-flex gap-1">
+                        <a th:href="@{'/documents/' + ${doc.id} + '/edit'}" class="btn btn-sm btn-outline-primary" style="font-size:.7rem;padding:2px 8px;">✏️</a>
+                        <form th:action="@{'/documents/' + ${doc.id} + '/delete'}" method="post"
+                              onsubmit="return confirm('Да изтрия ли този документ?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:.7rem;padding:2px 8px;">🗑️</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${#lists.isEmpty(documents)}" class="text-center text-muted py-5">
+        Няма качени документи още. <a th:href="@{/documents/scan}">Сканирай първия</a>.
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const documentsBaseUrl = /*[[@{/documents/export}]]*/ '/documents/export';
+
+    function exportSelected() {
+        const checked = document.querySelectorAll('.doc-checkbox:checked');
+        if (checked.length === 0) {
+            alert('Моля, изберете поне един документ (чекбокс в горния ляв ъгъл на снимката).');
+            return;
+        }
+        const ids = Array.from(checked).map(cb => cb.value);
+        const params = ids.map(id => 'ids=' + encodeURIComponent(id)).join('&');
+        window.location.href = documentsBaseUrl + '?' + params;
+    }
+</script>
+</body>
+</html>

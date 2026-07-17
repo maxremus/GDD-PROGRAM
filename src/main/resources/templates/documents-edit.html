@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Преглед на документ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f6fb; }
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border-radius: 14px;
+            padding: 22px 28px; margin-bottom: 24px;
+        }
+        .card { border: none; border-radius: 14px; box-shadow: 0 2px 16px rgba(0,0,0,.07); }
+        .doc-image { width: 100%; border-radius: 12px; border: 1px solid #eee; }
+        .ocr-text {
+            background: #f8f9fa; border-radius: 10px; padding: 12px;
+            font-size: .78rem; color: #666; max-height: 220px; overflow-y: auto;
+            white-space: pre-wrap; font-family: monospace;
+        }
+        label.form-label { font-size: .82rem; font-weight: 600; color: #444; }
+    </style>
+</head>
+<body>
+<div class="container-fluid py-4 px-4">
+
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">🔍 Преглед и корекция на документ</h5>
+        <a th:href="@{/documents}" class="btn btn-light btn-sm">← Обратно към списъка</a>
+    </div>
+
+    <div class="row g-4">
+        <!-- ЛЯВО: снимка + OCR текст -->
+        <div class="col-lg-5">
+            <div class="card p-3">
+                <img th:if="${#strings.startsWith(doc.contentType,'image/')}"
+                     th:src="@{'/documents/' + ${doc.id} + '/image'}" class="doc-image" alt="документ">
+                <div class="mt-3" th:if="${doc.ocrText != null}">
+                    <label class="form-label">📝 Разпознат текст (OCR) — само за справка</label>
+                    <div class="ocr-text" th:text="${doc.ocrText}"></div>
+                </div>
+                <div class="alert alert-warning mt-3 mb-0 py-2" th:if="${doc.ocrText == null}">
+                    ⏳ OCR обработката още не е готова (или не е приложима за този файл). Презаредете страницата след малко.
+                </div>
+            </div>
+        </div>
+
+        <!-- ДЯСНО: форма за корекция -->
+        <div class="col-lg-7">
+            <div class="card p-4">
+                <form th:action="@{'/documents/' + ${doc.id} + '/edit'}" method="post">
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Тип документ</label>
+                            <select name="documentType" class="form-select">
+                                <option th:each="t : ${T(java.util.List).of('Ф-ра','ДИ','КИ','МД','Прот','ОП','ОПС','ПКО','РКО','МО','ББ','ПН')}"
+                                        th:value="${t}" th:text="${t}" th:selected="${t == doc.documentType}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Номер на документ</label>
+                            <input type="text" name="documentNumber" class="form-control" th:value="${doc.documentNumber}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Дата на документа</label>
+                            <input type="date" name="documentDate" class="form-control" th:value="${doc.documentDate}">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Обща сума (с ДДС)</label>
+                            <input type="number" step="0.01" name="totalAmount" class="form-control" th:value="${doc.totalAmount}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Стойност на ДДС <span class="text-muted fw-normal">(-1 = автоматично)</span></label>
+                            <input type="number" step="0.01" name="vatAmount" class="form-control" th:value="${doc.vatAmount}">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Данъчна група (тип на ДДС операцията, 1-27)</label>
+                            <input type="number" name="vatType" class="form-control" th:value="${doc.vatType}" placeholder="напр. 1 = ДК">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Операция/контировка</label>
+                            <input type="text" name="operationType" class="form-control" th:value="${doc.operationType}" placeholder="1-8 или напр. 304%-401">
+                        </div>
+
+                        <div class="col-12"><hr class="my-1"></div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Ime на партньора</label>
+                            <input type="text" name="partnerName" class="form-control" th:value="${doc.partnerName}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">МОЛ на партньора</label>
+                            <input type="text" name="partnerMol" class="form-control" th:value="${doc.partnerMol}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Град</label>
+                            <input type="text" name="partnerCity" class="form-control" th:value="${doc.partnerCity}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Адрес</label>
+                            <input type="text" name="partnerAddress" class="form-control" th:value="${doc.partnerAddress}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ДДС номер (напр. BG831826092)</label>
+                            <input type="text" name="partnerVatNumber" class="form-control" th:value="${doc.partnerVatNumber}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Булстат/ЕИК</label>
+                            <input type="text" name="partnerBulstat" class="form-control" th:value="${doc.partnerBulstat}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Банка и сметка</label>
+                            <input type="text" name="bankAccount" class="form-control" th:value="${doc.bankAccount}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Описание на сделката</label>
+                            <input type="text" name="description" class="form-control" th:value="${doc.description}">
+                        </div>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-lg text-white"
+                                style="background:linear-gradient(135deg,#667eea,#764ba2);">
+                            ✅ Запази и маркирай като прегледано
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
