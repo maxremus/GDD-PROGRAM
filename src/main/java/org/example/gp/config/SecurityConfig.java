@@ -67,6 +67,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/login", "/logout").permitAll()
                 .requestMatchers("/register").permitAll()
                 .requestMatchers("/forgot-password", "/reset-password").permitAll()
                 .requestMatchers("/stripe/webhook").permitAll()
