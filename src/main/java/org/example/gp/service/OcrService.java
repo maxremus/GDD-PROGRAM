@@ -140,16 +140,20 @@ public class OcrService {
     private static final Pattern DATE_PATTERN = Pattern.compile("\\b(\\d{1,2})[.\\-/](\\d{1,2})[.\\-/](\\d{4})\\b");
     private static final Pattern BULSTAT_PATTERN = Pattern.compile("\\b(\\d{9}|\\d{13})\\b");
     private static final Pattern VAT_NUMBER_PATTERN = Pattern.compile("\\bBG\\s?(\\d{9,10})\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern INVOICE_NO_PATTERN = Pattern.compile(
-            "(?:фактура|инвойс|№|номер)[^0-9]{0,10}(\\d{6,10})", Pattern.CASE_INSENSITIVE);
-    private static final Pattern AMOUNT_NEAR_TOTAL = Pattern.compile(
-            "(?:всичко|обща\\s*сума|дължим[а]?\\s*сума|за\\s*плащане|сума\\s*за\\s*плащане)[^0-9]{0,15}([0-9]+[.,][0-9]{2})",
-            Pattern.CASE_INSENSITIVE);
-    private static final Pattern VAT_AMOUNT_PATTERN = Pattern.compile(
-            "(?:ддс|vat)[^0-9]{0,15}([0-9]+[.,][0-9]{2})", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MONEY_PATTERN = Pattern.compile("([0-9]{1,3}(?:[ .]?[0-9]{3})*[.,][0-9]{2})");
+
+    private static final Pattern INVOICE_NO_LINE = Pattern.compile(
+            "(?:фактура|инвойс|№|номер|no\\.?)[^0-9\\n]{0,15}(\\d{6,10})", Pattern.CASE_INSENSITIVE);
+
+    // Етикети за ред с обща сума — проверяваме реда И следващия ред (OCR понякога чупи етикет/число на 2 реда)
+    private static final Pattern TOTAL_LABEL = Pattern.compile(
+            "(?:обща\\s*сума|общо|дължим[а]?\\s*сума|за\\s*плащане|сума\\s*за\\s*плащане|всичко)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern VAT_LABEL = Pattern.compile("(?:ддс|vat)(?!\\s*(?:номер|no|№))", Pattern.CASE_INSENSITIVE);
 
     private void applyExtractedFields(ScannedDocument doc, String text) {
-        // Дата
+        String[] lines = text.split("\\r?\\n");
+
+        // ── Дата (търсим в целия текст — форматът dd.mm.yyyy е достатъчно уникален) ──
         Matcher dateM = DATE_PATTERN.matcher(text);
         if (dateM.find() && doc.getDocumentDate() == null) {
             try {
@@ -160,34 +164,54 @@ public class OcrService {
             } catch (Exception ignored) {}
         }
 
-        // ДДС номер на партньора
+        // ── ДДС номер / Булстат (в целия текст) ──
         Matcher vatNumM = VAT_NUMBER_PATTERN.matcher(text);
         if (vatNumM.find() && doc.getPartnerVatNumber() == null) {
             doc.setPartnerVatNumber("BG" + vatNumM.group(1));
         }
-
-        // Булстат/ЕИК (9 или 13 цифри, различно от вече намерения ДДС номер)
         Matcher bulstatM = BULSTAT_PATTERN.matcher(text);
         if (bulstatM.find() && doc.getPartnerBulstat() == null) {
             doc.setPartnerBulstat(bulstatM.group(1));
         }
 
-        // Номер на документ
-        Matcher invM = INVOICE_NO_PATTERN.matcher(text);
+        // ── Номер на документ (в целия текст, толерантно към разстояние) ──
+        Matcher invM = INVOICE_NO_LINE.matcher(text);
         if (invM.find() && doc.getDocumentNumber() == null) {
             doc.setDocumentNumber(invM.group(1));
         }
 
-        // Обща сума
-        Matcher amountM = AMOUNT_NEAR_TOTAL.matcher(text);
-        if (amountM.find() && doc.getTotalAmount() == null) {
-            doc.setTotalAmount(parseAmount(amountM.group(1)));
+        // ── Обща сума и ДДС — ред по ред, проверяваме и следващия ред при нужда ──
+        BigDecimal totalFound = null;
+        BigDecimal vatFound = null;
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            String nextLine = (i + 1 < lines.length) ? lines[i + 1] : "";
+
+            if (totalFound == null && TOTAL_LABEL.matcher(line).find()) {
+                BigDecimal amount = extractLastMoney(line);
+                if (amount == null) amount = extractLastMoney(nextLine);
+                if (amount != null) totalFound = amount;
+            }
+
+            if (vatFound == null && VAT_LABEL.matcher(line).find()) {
+                BigDecimal amount = extractLastMoney(line);
+                if (amount == null) amount = extractLastMoney(nextLine);
+                if (amount != null) vatFound = amount;
+            }
         }
 
-        // ДДС сума
-        Matcher vatAmountM = VAT_AMOUNT_PATTERN.matcher(text);
-        if (vatAmountM.find() && doc.getVatAmount() == null) {
-            doc.setVatAmount(parseAmount(vatAmountM.group(1)));
+        // Fallback: ако не намерихме "обща сума" по етикет, вземаме най-голямата парична
+        // сума в целия документ — типично това Е общата сума за плащане.
+        if (totalFound == null) {
+            totalFound = extractLargestMoney(text);
+        }
+
+        if (totalFound != null && doc.getTotalAmount() == null) {
+            doc.setTotalAmount(totalFound);
+        }
+        if (vatFound != null && doc.getVatAmount() == null) {
+            doc.setVatAmount(vatFound);
         }
 
         // По подразбиране — фактура, ако нищо друго не е зададено
@@ -196,9 +220,39 @@ public class OcrService {
         }
     }
 
+    /** Последната парична сума на реда (обикновено сумата стои след етикета/валутата). */
+    private BigDecimal extractLastMoney(String line) {
+        Matcher m = MONEY_PATTERN.matcher(line);
+        BigDecimal last = null;
+        while (m.find()) {
+            last = parseAmount(m.group(1));
+        }
+        return last;
+    }
+
+    /** Най-голямата парична сума в целия текст — груб fallback за "обща сума". */
+    private BigDecimal extractLargestMoney(String text) {
+        Matcher m = MONEY_PATTERN.matcher(text);
+        BigDecimal max = null;
+        while (m.find()) {
+            BigDecimal value = parseAmount(m.group(1));
+            if (value != null && (max == null || value.compareTo(max) > 0)) {
+                max = value;
+            }
+        }
+        return max;
+    }
+
     private BigDecimal parseAmount(String raw) {
         try {
-            return new BigDecimal(raw.replace(",", "."));
+            String normalized = raw.replace(" ", "");
+            // Ако има и точка, и запетая — запетаята е разделител на хилядите
+            if (normalized.contains(",") && normalized.contains(".")) {
+                normalized = normalized.replace(",", "");
+            } else {
+                normalized = normalized.replace(",", ".");
+            }
+            return new BigDecimal(normalized);
         } catch (Exception e) {
             return null;
         }

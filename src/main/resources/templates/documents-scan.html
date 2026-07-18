@@ -35,7 +35,10 @@
             <h5 class="mb-0 fw-bold">📷 Сканирай документ</h5>
             <small class="opacity-75">Снимай фактура/касова бележка директно от телефона</small>
         </div>
-        <a th:href="@{/documents}" class="btn btn-light btn-sm">📄 Документи</a>
+        <div class="d-flex gap-2">
+            <a th:href="@{/companies}" class="btn btn-light btn-sm">🏢 Начало</a>
+            <a th:href="@{/documents}" class="btn btn-light btn-sm">📄 Документи</a>
+        </div>
     </div>
 
     <div th:if="${errorMessage}" class="alert alert-danger">

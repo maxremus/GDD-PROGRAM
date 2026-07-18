@@ -27,7 +27,10 @@
 
     <div class="page-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0 fw-bold">🔍 Преглед и корекция на документ</h5>
-        <a th:href="@{/documents}" class="btn btn-light btn-sm">← Обратно към списъка</a>
+        <div class="d-flex gap-2">
+            <a th:href="@{/companies}" class="btn btn-light btn-sm">🏢 Начало</a>
+            <a th:href="@{/documents}" class="btn btn-light btn-sm">← Обратно към списъка</a>
+        </div>
     </div>
 
     <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
@@ -74,32 +77,39 @@
                                 <option th:each="t : ${T(java.util.List).of('Ф-ра','ДИ','КИ','МД','Прот','ОП','ОПС','ПКО','РКО','МО','ББ','ПН')}"
                                         th:value="${t}" th:text="${t}" th:selected="${t == doc.documentType}"></option>
                             </select>
+                            <div class="form-text">Ф-ра = фактура, ДИ = дебитно известие, КИ = кредитно известие, ПКО/РКО = касов ордер.</div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Номер на документ</label>
                             <input type="text" name="documentNumber" class="form-control" th:value="${doc.documentNumber}">
+                            <div class="form-text">Номерът на фактурата/бележката, изписан горе вдясно на документа.</div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Дата на документа</label>
                             <input type="date" name="documentDate" class="form-control" th:value="${doc.documentDate}">
+                            <div class="form-text">Датата, на която е издаден документът (не днешната дата).</div>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Обща сума (с ДДС)</label>
                             <input type="number" step="0.01" name="totalAmount" class="form-control" th:value="${doc.totalAmount}">
+                            <div class="form-text">Крайната сума за плащане, както е изписана на документа.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Стойност на ДДС <span class="text-muted fw-normal">(-1 = автоматично)</span></label>
                             <input type="number" step="0.01" name="vatAmount" class="form-control" th:value="${doc.vatAmount}">
+                            <div class="form-text">Оставете -1, ако искате Делта Про сама да изчисли ДДС от общата сума.</div>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Данъчна група (тип на ДДС операцията, 1-27)</label>
                             <input type="number" name="vatType" class="form-control" th:value="${doc.vatType}" placeholder="напр. 1 = ДК">
+                            <div class="form-text">Код по таблицата на Микроинвест за данъчни групи — питайте счетоводителя си кой номер важи за този тип покупка, ако не сте сигурни.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Операция/контировка</label>
                             <input type="text" name="operationType" class="form-control" th:value="${doc.operationType}" placeholder="1-8 или напр. 304%-401">
+                            <div class="form-text">Предефинирана операция (число 1-8) или ръчна счетоводна контировка (напр. 304%-401).</div>
                         </div>
 
                         <div class="col-12"><hr class="my-1"></div>
@@ -107,10 +117,12 @@
                         <div class="col-md-6">
                             <label class="form-label">Ime на партньора</label>
                             <input type="text" name="partnerName" class="form-control" th:value="${doc.partnerName}">
+                            <div class="form-text">Доставчикът/фирмата, издала документа (не вашата кантора).</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">МОЛ на партньора</label>
                             <input type="text" name="partnerMol" class="form-control" th:value="${doc.partnerMol}">
+                            <div class="form-text">Материално отговорно лице — обикновено управителят на фирмата-партньор.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Град</label>
@@ -123,18 +135,22 @@
                         <div class="col-md-6">
                             <label class="form-label">ДДС номер (напр. BG831826092)</label>
                             <input type="text" name="partnerVatNumber" class="form-control" th:value="${doc.partnerVatNumber}">
+                            <div class="form-text">Само ако партньорът е регистриран по ДДС.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Булстат/ЕИК</label>
                             <input type="text" name="partnerBulstat" class="form-control" th:value="${doc.partnerBulstat}">
+                            <div class="form-text">9 или 13-цифреният идентификатор на фирмата-партньор.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Банка и сметка</label>
                             <input type="text" name="bankAccount" class="form-control" th:value="${doc.bankAccount}">
+                            <div class="form-text">По избор — само ако плащането е по банков път и искате да го отбележите.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Описание на сделката</label>
                             <input type="text" name="description" class="form-control" th:value="${doc.description}">
+                            <div class="form-text">Кратък текст за какво е документът, напр. "Строителни материали".</div>
                         </div>
                     </div>
 
