@@ -148,6 +148,13 @@ public class DocumentController {
         return "documents-edit";
     }
 
+    @PostMapping("/{id}/retry-ocr")
+    public String retryOcr(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        ocrService.processDocumentAsync(id);
+        redirectAttributes.addFlashAttribute("successMessage", "OCR стартиран отново — презаредете след няколко секунди.");
+        return "redirect:/documents/" + id + "/edit";
+    }
+
     @PostMapping("/{id}/edit")
     public String saveEdit(@PathVariable Long id,
                            @RequestParam(required = false) String documentType,

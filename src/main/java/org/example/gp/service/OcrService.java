@@ -11,8 +11,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,47 +27,75 @@ public class OcrService {
     @Value("${ocr.tesseract-path:tesseract}")
     private String tesseractPath;
 
-    @Value("${ocr.languages:bul+eng}")
+    @Value("${ocr.languages:bul}")
     private String languages;
 
     @Value("${ocr.enabled:true}")
     private boolean ocrEnabled;
 
-    private final ScannedDocumentRepository repository;
+    @Value("${ocr.tessdata-prefix:/usr/share/tessdata}")
+    private String tessdataPrefix;
 
-    public OcrService(ScannedDocumentRepository repository) {
+    @Value("${ocr.timeout-seconds:90}")
+    private int timeoutSeconds;
+
+    private final ScannedDocumentRepository repository;
+    private final AuditLogService auditLogService;
+
+    public OcrService(ScannedDocumentRepository repository, AuditLogService auditLogService) {
         this.repository = repository;
+        this.auditLogService = auditLogService;
     }
 
-    /** Извиква се асинхронно веднага след качване на документ. Никога не хвърля грешка навън. */
+    /** Извиква се асинхронно веднага след качване на документ (или ръчно за повторен опит). */
     @Async
     public void processDocumentAsync(Long documentId) {
         if (!ocrEnabled) return;
 
+        ScannedDocument doc = repository.findById(documentId).orElse(null);
+        if (doc == null || doc.getContentType() == null || !doc.getContentType().startsWith("image/")) {
+            return; // PDF или друг формат — засега без OCR
+        }
+
         try {
-            ScannedDocument doc = repository.findById(documentId).orElse(null);
-            if (doc == null || doc.getContentType() == null || !doc.getContentType().startsWith("image/")) {
-                return; // PDF или друг формат — засега без OCR
-            }
+            TesseractResult result = runTesseract(doc.getFileData());
 
-            String text = runTesseract(doc.getFileData());
-            if (text == null || text.isBlank()) {
-                return;
+            if (result.text != null && !result.text.isBlank()) {
+                doc.setOcrText(result.text);
+                applyExtractedFields(doc, result.text);
+                repository.save(doc);
+                auditLogService.log("system", doc.getOfficeId(), null, "ocr.success", "OCR",
+                        "documents/" + documentId, "разпознати " + result.text.length() + " символа", "-", true, null);
+            } else {
+                String errorMsg = "[OCR не разпозна текст] " +
+                        (result.stderr != null && !result.stderr.isBlank() ? result.stderr.trim() : "празен резултат — проверете качеството на снимката.");
+                doc.setOcrText(errorMsg);
+                repository.save(doc);
+                auditLogService.log("system", doc.getOfficeId(), null, "ocr.empty", "OCR",
+                        "documents/" + documentId, errorMsg, "-", false, result.stderr);
             }
-
-            doc.setOcrText(text);
-            applyExtractedFields(doc, text);
-            repository.save(doc);
 
         } catch (Exception e) {
-            // Тихо — OCR е "best effort", не трябва да чупи нищо
+            try {
+                doc.setOcrText("[OCR грешка] " + e.getMessage());
+                repository.save(doc);
+            } catch (Exception ignored) { }
+            auditLogService.log("system", doc.getOfficeId(), null, "ocr.failed", "OCR",
+                    "documents/" + documentId, "-", "-", false, e.getMessage());
         }
     }
 
-    private String runTesseract(byte[] imageBytes) throws IOException, InterruptedException {
+    private static class TesseractResult {
+        String text;
+        String stderr;
+    }
+
+    private TesseractResult runTesseract(byte[] imageBytes) throws IOException, InterruptedException {
         File tempImage = File.createTempFile("ocr-", ".jpg");
         File tempOutBase = File.createTempFile("ocr-out-", "");
         tempOutBase.delete(); // tesseract сам ще създаде tempOutBase.txt
+
+        TesseractResult result = new TesseractResult();
 
         try {
             Files.write(tempImage.toPath(), imageBytes);
@@ -78,24 +104,30 @@ public class OcrService {
                     tesseractPath, tempImage.getAbsolutePath(), tempOutBase.getAbsolutePath(),
                     "-l", languages
             );
-            pb.redirectErrorStream(true);
+            // Explicit TESSDATA_PREFIX — на Alpine tesseract понякога не намира
+            // езиковите данни без него, дори да са инсталирани коректно.
+            if (tessdataPrefix != null && !tessdataPrefix.isBlank()) {
+                pb.environment().put("TESSDATA_PREFIX", tessdataPrefix);
+            }
+            pb.redirectErrorStream(false);
             Process process = pb.start();
 
-            // Изчитаме stdout/stderr, за да не блокира процеса при пълен буфер
-            process.getInputStream().readAllBytes();
+            String stdout = new String(process.getInputStream().readAllBytes());
+            String stderr = new String(process.getErrorStream().readAllBytes());
+            result.stderr = (stdout + "\n" + stderr).trim();
 
-            boolean finished = process.waitFor(60, TimeUnit.SECONDS);
+            boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
-                return null;
+                result.stderr = "Timeout след " + timeoutSeconds + " секунди (сървърът е бавен за тази снимка).";
+                return result;
             }
 
             File outputTxt = new File(tempOutBase.getAbsolutePath() + ".txt");
-            if (!outputTxt.exists()) {
-                return null;
+            if (outputTxt.exists()) {
+                result.text = Files.readString(outputTxt.toPath());
+                Files.deleteIfExists(outputTxt.toPath());
             }
-            String result = Files.readString(outputTxt.toPath());
-            Files.deleteIfExists(outputTxt.toPath());
             return result;
 
         } finally {
