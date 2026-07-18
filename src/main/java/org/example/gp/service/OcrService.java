@@ -136,24 +136,55 @@ public class OcrService {
     }
 
     // ==================== Евристично извличане на полета ====================
+    // ВАЖНО: Pattern.CASE_INSENSITIVE без Pattern.UNICODE_CASE НЕ работи за кирилица
+    // (по подразбиране Java прави case-fold само за ASCII букви) — затова винаги
+    // комбинираме двата флага, иначе "ФАКТУРА" (главни) никога не съвпада с "фактура".
+    private static final int CI = Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
 
     private static final Pattern DATE_PATTERN = Pattern.compile("\\b(\\d{1,2})[.\\-/](\\d{1,2})[.\\-/](\\d{4})\\b");
     private static final Pattern BULSTAT_PATTERN = Pattern.compile("\\b(\\d{9}|\\d{13})\\b");
-    private static final Pattern VAT_NUMBER_PATTERN = Pattern.compile("\\bBG\\s?(\\d{9,10})\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern VAT_NUMBER_PATTERN = Pattern.compile("\\bBG\\s?(\\d{9,10})\\b", CI);
     private static final Pattern MONEY_PATTERN = Pattern.compile("([0-9]{1,3}(?:[ .]?[0-9]{3})*[.,][0-9]{2})");
 
     private static final Pattern INVOICE_NO_LINE = Pattern.compile(
-            "(?:фактура|инвойс|№|номер|no\\.?)[^0-9\\n]{0,15}(\\d{6,10})", Pattern.CASE_INSENSITIVE);
+            "(?:фактура|инвойс|№|номер|no\\.?)[^0-9\\n]{0,15}(\\d{6,10})", CI);
 
-    // Етикети за ред с обща сума — проверяваме реда И следващия ред (OCR понякога чупи етикет/число на 2 реда)
-    private static final Pattern TOTAL_LABEL = Pattern.compile(
-            "(?:обща\\s*сума|общо|дължим[а]?\\s*сума|за\\s*плащане|сума\\s*за\\s*плащане|всичко)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern VAT_LABEL = Pattern.compile("(?:ддс|vat)(?!\\s*(?:номер|no|№))", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TOTAL_LABEL_SPECIFIC = Pattern.compile(
+            "(?:обща\\s*с[уy][мm]а|дължим[а]?\\s*с[уy][мm]а|за\\s*плащане|с[уy][мm]а\\s*за\\s*плащане)", CI);
+    private static final Pattern TOTAL_LABEL_GENERIC = Pattern.compile("(?:^|\\s)(?:общо|всичко)", CI);
+    private static final Pattern VAT_LABEL = Pattern.compile("(?:ддс|vat)(?!\\s*(?:номер|no|№))", CI);
+
+    private static final Pattern SUPPLIER_LABEL = Pattern.compile("доставчик", CI);
+    private static final Pattern MOL_LABEL = Pattern.compile("мол\\b\\.?:?", CI);
+    private static final Pattern ADDRESS_LABEL = Pattern.compile("адрес\\b:?", CI);
+    private static final Pattern COMPANY_SUFFIX = Pattern.compile("(ООД|ЕООД|АД|ЕАД|КД|СД|ЕТ)\\b", CI);
+
+    /**
+     * OCR (дори само с "bul" език) от време на време бърка визуално еднакви
+     * латински/кирилски букви (напр. "cyma" вместо "сума"). Тук нормализираме
+     * САМО за целите на откриване на etikети — 1 знак → 1 знак, за да могат
+     * позициите да се ползват директно и в оригиналния (ненормализиран) ред.
+     */
+    private static String normalizeForLabelMatching(String line) {
+        return line
+                .replace('c', 'с').replace('C', 'С')
+                .replace('y', 'у').replace('Y', 'У')
+                .replace('o', 'о').replace('O', 'О')
+                .replace('a', 'а').replace('A', 'А')
+                .replace('e', 'е').replace('E', 'Е')
+                .replace('x', 'х').replace('X', 'Х')
+                .replace('p', 'р').replace('P', 'Р')
+                .replace('H', 'Н')
+                .replace('B', 'В')
+                .replace('K', 'К')
+                .replace('M', 'М')
+                .replace('T', 'Т');
+    }
 
     private void applyExtractedFields(ScannedDocument doc, String text) {
         String[] lines = text.split("\\r?\\n");
 
-        // ── Дата (търсим в целия текст — форматът dd.mm.yyyy е достатъчно уникален) ──
+        // ── Дата ──
         Matcher dateM = DATE_PATTERN.matcher(text);
         if (dateM.find() && doc.getDocumentDate() == null) {
             try {
@@ -164,7 +195,7 @@ public class OcrService {
             } catch (Exception ignored) {}
         }
 
-        // ── ДДС номер / Булстат (в целия текст) ──
+        // ── ДДС номер / Булстат (винаги на латиница/цифри — не се нормализират) ──
         Matcher vatNumM = VAT_NUMBER_PATTERN.matcher(text);
         if (vatNumM.find() && doc.getPartnerVatNumber() == null) {
             doc.setPartnerVatNumber("BG" + vatNumM.group(1));
@@ -174,50 +205,111 @@ public class OcrService {
             doc.setPartnerBulstat(bulstatM.group(1));
         }
 
-        // ── Номер на документ (в целия текст, толерантно към разстояние) ──
-        Matcher invM = INVOICE_NO_LINE.matcher(text);
+        // ── Номер на документ ──
+        Matcher invM = INVOICE_NO_LINE.matcher(normalizeForLabelMatching(text));
         if (invM.find() && doc.getDocumentNumber() == null) {
             doc.setDocumentNumber(invM.group(1));
         }
 
-        // ── Обща сума и ДДС — ред по ред, проверяваме и следващия ред при нужда ──
-        BigDecimal totalFound = null;
+        // ── Обща сума / ДДС / Партньор — ред по ред, съпоставяме върху нормализирана версия ──
+        BigDecimal specificTotal = null;
+        BigDecimal genericTotal = null;
         BigDecimal vatFound = null;
+        String supplierName = null;
+        String mol = null;
+        String address = null;
 
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i];
-            String nextLine = (i + 1 < lines.length) ? lines[i + 1] : "";
+            String normLine = normalizeForLabelMatching(line);
+            String nextLine = (i + 1 < lines.length) ? lines[i + 1].trim() : "";
 
-            if (totalFound == null && TOTAL_LABEL.matcher(line).find()) {
+            if (specificTotal == null && TOTAL_LABEL_SPECIFIC.matcher(normLine).find()) {
                 BigDecimal amount = extractLastMoney(line);
                 if (amount == null) amount = extractLastMoney(nextLine);
-                if (amount != null) totalFound = amount;
+                if (amount != null) specificTotal = amount;
             }
-
-            if (vatFound == null && VAT_LABEL.matcher(line).find()) {
+            if (genericTotal == null && TOTAL_LABEL_GENERIC.matcher(normLine).find()) {
+                BigDecimal amount = extractLastMoney(line);
+                if (amount == null) amount = extractLastMoney(nextLine);
+                if (amount != null) genericTotal = amount;
+            }
+            if (vatFound == null && VAT_LABEL.matcher(normLine).find()) {
                 BigDecimal amount = extractLastMoney(line);
                 if (amount == null) amount = extractLastMoney(nextLine);
                 if (amount != null) vatFound = amount;
             }
+
+            if (supplierName == null && SUPPLIER_LABEL.matcher(normLine).find()) {
+                String candidate = textAfterLabel(line, normLine, SUPPLIER_LABEL);
+                candidate = trimAtCompanySuffix(candidate);
+                if (candidate == null || candidate.isBlank() || !COMPANY_SUFFIX.matcher(candidate).find()) {
+                    String nextCandidate = trimAtCompanySuffix(nextLine);
+                    if (nextCandidate != null && COMPANY_SUFFIX.matcher(nextCandidate).find()) candidate = nextCandidate;
+                }
+                if (candidate != null && !candidate.isBlank()) supplierName = candidate.trim();
+            }
+
+            if (mol == null && MOL_LABEL.matcher(normLine).find()) {
+                String candidate = trimAtColumnBoundary(textAfterLabel(line, normLine, MOL_LABEL));
+                if ((candidate == null || candidate.isBlank()) && !nextLine.isBlank()) candidate = trimAtColumnBoundary(nextLine);
+                if (candidate != null && !candidate.isBlank()) mol = candidate.trim();
+            }
+
+            if (address == null && ADDRESS_LABEL.matcher(normLine).find()) {
+                String candidate = trimAtColumnBoundary(textAfterLabel(line, normLine, ADDRESS_LABEL));
+                if ((candidate == null || candidate.isBlank()) && !nextLine.isBlank()) candidate = trimAtColumnBoundary(nextLine);
+                if (candidate != null && !candidate.isBlank()) address = candidate.trim();
+            }
         }
 
-        // Fallback: ако не намерихме "обща сума" по етикет, вземаме най-голямата парична
-        // сума в целия документ — типично това Е общата сума за плащане.
-        if (totalFound == null) {
-            totalFound = extractLargestMoney(text);
-        }
+        BigDecimal total = specificTotal != null ? specificTotal
+                : genericTotal != null ? genericTotal
+                : extractLargestMoney(text);
 
-        if (totalFound != null && doc.getTotalAmount() == null) {
-            doc.setTotalAmount(totalFound);
-        }
-        if (vatFound != null && doc.getVatAmount() == null) {
-            doc.setVatAmount(vatFound);
-        }
+        if (total != null && doc.getTotalAmount() == null) doc.setTotalAmount(total);
+        if (vatFound != null && doc.getVatAmount() == null) doc.setVatAmount(vatFound);
+        if (supplierName != null && doc.getPartnerName() == null) doc.setPartnerName(supplierName);
+        if (mol != null && doc.getPartnerMol() == null) doc.setPartnerMol(mol);
+        if (address != null && doc.getPartnerAddress() == null) doc.setPartnerAddress(address);
 
-        // По подразбиране — фактура, ако нищо друго не е зададено
         if (doc.getDocumentType() == null) {
             doc.setDocumentType("Ф-ра");
         }
+    }
+
+    /** Текстът след etikета — позицията се търси в нормализирания ред, но текстът се взима от оригинала. */
+    private String textAfterLabel(String originalLine, String normalizedLine, Pattern labelPattern) {
+        Matcher m = labelPattern.matcher(normalizedLine);
+        if (!m.find()) return null;
+        String rest = originalLine.substring(Math.min(m.end(), originalLine.length()));
+        rest = rest.replaceFirst("^[:\\s]+", "").trim();
+        return rest.isBlank() ? null : rest;
+    }
+
+    /** Отрязва при първата "|" (колонен разделител в OCR) или двоен интервал — за да не гребне целия ред. */
+    private String trimAtColumnBoundary(String candidate) {
+        if (candidate == null) return null;
+        int cut = candidate.length();
+        int pipeIdx = candidate.indexOf('|');
+        if (pipeIdx >= 0) cut = Math.min(cut, pipeIdx);
+        int doubleSpaceIdx = candidate.indexOf("  ");
+        if (doubleSpaceIdx >= 0) cut = Math.min(cut, doubleSpaceIdx);
+        cut = Math.min(cut, 60); // разумен таван за ime/адрес
+        String trimmed = candidate.substring(0, cut).trim();
+        return trimmed.isBlank() ? null : trimmed;
+    }
+
+    /** За ime на фирма — спира веднага след правната форма (ООД/ЕООД/...), за да отреже боклука след нея. */
+    private String trimAtCompanySuffix(String candidate) {
+        if (candidate == null) return null;
+        String bounded = trimAtColumnBoundary(candidate);
+        if (bounded == null) return null;
+        Matcher suffixM = COMPANY_SUFFIX.matcher(bounded);
+        if (suffixM.find()) {
+            return bounded.substring(0, suffixM.end()).trim();
+        }
+        return bounded;
     }
 
     /** Последната парична сума на реда (обикновено сумата стои след етикета/валутата). */
@@ -246,7 +338,6 @@ public class OcrService {
     private BigDecimal parseAmount(String raw) {
         try {
             String normalized = raw.replace(" ", "");
-            // Ако има и точка, и запетая — запетаята е разделител на хилядите
             if (normalized.contains(",") && normalized.contains(".")) {
                 normalized = normalized.replace(",", "");
             } else {
