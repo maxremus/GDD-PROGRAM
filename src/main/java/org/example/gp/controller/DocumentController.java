@@ -8,7 +8,7 @@ import org.example.gp.repository.UserRepository;
 import org.example.gp.service.CompanyService;
 import org.example.gp.service.DocumentExportService;
 import org.example.gp.service.DocumentService;
-import org.example.gp.service.OcrService;
+import org.example.gp.service.GeminiOcrService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,13 +31,13 @@ public class DocumentController {
     private final DocumentService documentService;
     private final CompanyService companyService;
     private final UserRepository userRepository;
-    private final OcrService ocrService;
+    private final GeminiOcrService ocrService;
     private final DocumentExportService documentExportService;
 
     public DocumentController(DocumentService documentService,
                               CompanyService companyService,
                               UserRepository userRepository,
-                              OcrService ocrService,
+                              GeminiOcrService ocrService,
                               DocumentExportService documentExportService) {
         this.documentService = documentService;
         this.companyService = companyService;
