@@ -108,4 +108,12 @@ public class ScannedDocument {
     /** Описание на сделката (поле 14) */
     @Column(length = 500)
     private String description;
+
+    /** Общ брой листове/страници на документа (1 = само основната снимка). */
+    @Builder.Default
+    private int pageCount = 1;
+
+    /** Бележки от AI анализа — напр. несъответствие в цените, липсваща ДДС регистрация и т.н. */
+    @Column(length = 1000)
+    private String warnings;
 }

@@ -60,11 +60,27 @@
     </div>
 
     <div class="row g-4">
-        <!-- ЛЯВО: снимка + OCR текст -->
+        <!-- ЛЯВО: снимка(и) + OCR текст -->
         <div class="col-lg-5">
             <div class="card p-3">
+                <div th:if="${doc.pageCount > 1}" class="mb-2">
+                    <span class="badge bg-secondary">📑 Документ от ${doc.pageCount} листа</span>
+                </div>
+
                 <img th:if="${#strings.startsWith(doc.contentType,'image/')}"
-                     th:src="@{'/documents/' + ${doc.id} + '/image'}" class="doc-image" alt="документ">
+                     th:src="@{'/documents/' + ${doc.id} + '/image'}" class="doc-image" alt="документ, стр. 1">
+
+                <div th:if="${!#lists.isEmpty(pages)}" class="d-flex gap-2 flex-wrap mt-2">
+                    <img th:each="p : ${pages}"
+                         th:src="@{'/documents/' + ${doc.id} + '/page/' + ${p.pageNumber}}"
+                         class="doc-image" style="max-width:110px;cursor:pointer;"
+                         th:onclick="|window.open('/documents/${doc.id}/page/${p.pageNumber}', '_blank')|"
+                         alt="допълнителна страница">
+                </div>
+
+                <div th:if="${doc.warnings != null and !#strings.isEmpty(doc.warnings)}" class="alert alert-warning mt-3 mb-0 py-2">
+                    ⚠️ <strong>Забележка от анализа:</strong> <span th:text="${doc.warnings}"></span>
+                </div>
 
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <label class="form-label mb-0">📝 Разпознат текст (OCR) — само за справка</label>

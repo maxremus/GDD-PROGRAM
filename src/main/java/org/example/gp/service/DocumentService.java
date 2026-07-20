@@ -2,6 +2,8 @@ package org.example.gp.service;
 
 import org.example.gp.entity.DocumentStatus;
 import org.example.gp.entity.ScannedDocument;
+import org.example.gp.entity.ScannedDocumentPage;
+import org.example.gp.repository.ScannedDocumentPageRepository;
 import org.example.gp.repository.ScannedDocumentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,6 +18,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -26,33 +29,37 @@ public class DocumentService {
     private static final float JPEG_QUALITY = 0.8f;
 
     private final ScannedDocumentRepository repository;
+    private final ScannedDocumentPageRepository pageRepository;
 
-    public DocumentService(ScannedDocumentRepository repository) {
+    public DocumentService(ScannedDocumentRepository repository, ScannedDocumentPageRepository pageRepository) {
         this.repository = repository;
+        this.pageRepository = pageRepository;
     }
 
-    public ScannedDocument saveScannedDocument(MultipartFile file, Long officeId, Long companyId,
+    /** Качва документ от 1 или повече снимки (листове). Първата снимка е "основната" за преглед в списъка. */
+    public ScannedDocument saveScannedDocument(List<MultipartFile> files, Long officeId, Long companyId,
                                                String companyName, String uploadedBy, String note) throws IOException {
 
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Моля, изберете снимка на документ.");
+        if (files == null || files.isEmpty() || files.get(0).isEmpty()) {
+            throw new IllegalArgumentException("Моля, изберете поне една снимка на документ.");
         }
-        String contentType = file.getContentType();
+
+        MultipartFile firstFile = files.get(0);
+        String contentType = firstFile.getContentType();
         boolean isImage = contentType != null && contentType.startsWith("image/");
 
         byte[] data;
         String storedContentType;
-        String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "document";
+        String fileName = firstFile.getOriginalFilename() != null ? firstFile.getOriginalFilename() : "document";
 
         if (isImage) {
-            data = compressImage(file);
+            data = compressImage(firstFile);
             storedContentType = "image/jpeg";
             if (!fileName.toLowerCase().endsWith(".jpg") && !fileName.toLowerCase().endsWith(".jpeg")) {
                 fileName = fileName + ".jpg";
             }
         } else {
-            // PDF или друг файл — качваме както е, без компресия
-            data = file.getBytes();
+            data = firstFile.getBytes();
             storedContentType = contentType != null ? contentType : "application/octet-stream";
         }
 
@@ -67,9 +74,42 @@ public class DocumentService {
                 .note(note)
                 .status(DocumentStatus.NEW)
                 .uploadedAt(LocalDateTime.now())
+                .pageCount(files.size())
                 .build();
 
-        return repository.save(doc);
+        doc = repository.save(doc);
+
+        // Останалите листове (страница 2, 3...) — записваме ги свързани към основния документ
+        for (int i = 1; i < files.size(); i++) {
+            MultipartFile pageFile = files.get(i);
+            if (pageFile == null || pageFile.isEmpty()) continue;
+
+            String pageContentType = pageFile.getContentType();
+            byte[] pageData;
+            String storedPageContentType;
+
+            if (pageContentType != null && pageContentType.startsWith("image/")) {
+                pageData = compressImage(pageFile);
+                storedPageContentType = "image/jpeg";
+            } else {
+                pageData = pageFile.getBytes();
+                storedPageContentType = pageContentType != null ? pageContentType : "application/octet-stream";
+            }
+
+            ScannedDocumentPage page = ScannedDocumentPage.builder()
+                    .scannedDocumentId(doc.getId())
+                    .pageNumber(i + 1)
+                    .contentType(storedPageContentType)
+                    .fileData(pageData)
+                    .build();
+            pageRepository.save(page);
+        }
+
+        return doc;
+    }
+
+    public List<ScannedDocumentPage> getPages(Long documentId) {
+        return pageRepository.findByScannedDocumentIdOrderByPageNumberAsc(documentId);
     }
 
     /** Смалява и компресира снимката до разумен размер (JPEG, макс. 1600px по дългата страна). */
@@ -143,6 +183,7 @@ public class DocumentService {
         if (officeId != null && !officeId.equals(doc.getOfficeId())) {
             throw new RuntimeException("Нямате права да изтриете този документ.");
         }
+        pageRepository.deleteByScannedDocumentId(id);
         repository.deleteById(id);
     }
 

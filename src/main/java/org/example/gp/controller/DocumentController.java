@@ -64,7 +64,7 @@ public class DocumentController {
     }
 
     @PostMapping("/upload")
-    public String upload(@RequestParam("file") MultipartFile file,
+    public String upload(@RequestParam("files") List<MultipartFile> files,
                          @RequestParam(required = false) Long companyId,
                          @RequestParam(required = false) String note,
                          RedirectAttributes redirectAttributes) {
@@ -79,11 +79,12 @@ public class DocumentController {
         }
 
         try {
-            ScannedDocument saved = documentService.saveScannedDocument(file, officeId, companyId, companyName,
+            ScannedDocument saved = documentService.saveScannedDocument(files, officeId, companyId, companyName,
                     user != null ? user.getUsername() : "unknown", note);
             ocrService.processDocumentAsync(saved.getId());
+            String pagesMsg = files.size() > 1 ? " (" + files.size() + " листа)" : "";
             redirectAttributes.addFlashAttribute("successMessage",
-                    "Документът е качен успешно. Разпознаването на текста (OCR) тече във фонов режим — презаредете списъка след няколко секунди.");
+                    "Документът" + pagesMsg + " е качен успешно. Разпознаването на текста (OCR) тече във фонов режим — презаредете списъка след няколко секунди.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Грешка при качване: " + e.getMessage());
         }
@@ -116,6 +117,18 @@ public class DocumentController {
                 .body(doc.getFileData());
     }
 
+    @GetMapping("/{id}/page/{pageNumber}")
+    @ResponseBody
+    public ResponseEntity<byte[]> viewPage(@PathVariable Long id, @PathVariable int pageNumber) {
+        var page = documentService.getPages(id).stream()
+                .filter(p -> p.getPageNumber() == pageNumber)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Страницата не е намерена"));
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(page.getContentType()))
+                .body(page.getFileData());
+    }
+
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         User user = getCurrentUser();
@@ -145,6 +158,7 @@ public class DocumentController {
     @GetMapping("/{id}/edit")
     public String editPage(@PathVariable Long id, Model model) {
         model.addAttribute("doc", documentService.getById(id));
+        model.addAttribute("pages", documentService.getPages(id));
         return "documents-edit";
     }
 

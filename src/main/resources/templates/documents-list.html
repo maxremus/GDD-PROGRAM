@@ -88,7 +88,10 @@
                 </div>
             </div>
             <div class="doc-body">
-                <div class="doc-company" th:text="${doc.companyName != null ? doc.companyName : 'Без фирма'}"></div>
+                <div class="doc-company">
+                    <span th:text="${doc.companyName != null ? doc.companyName : 'Без фирма'}"></span>
+                    <span th:if="${doc.pageCount > 1}" class="badge bg-secondary" style="font-size:.65rem;" th:text="'📑 ' + ${doc.pageCount} + ' л.'"></span>
+                </div>
                 <div class="doc-meta" th:text="${#temporals.format(doc.uploadedAt, 'dd.MM.yyyy HH:mm')} + ' · ' + ${doc.uploadedBy}"></div>
                 <div class="doc-note" th:if="${doc.note != null and !#strings.isEmpty(doc.note)}" th:text="${doc.note}"></div>
                 <div class="doc-note" th:if="${doc.partnerName != null}">

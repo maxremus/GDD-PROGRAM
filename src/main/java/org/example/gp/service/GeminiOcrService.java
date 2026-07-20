@@ -3,6 +3,8 @@ package org.example.gp.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.gp.entity.ScannedDocument;
+import org.example.gp.entity.ScannedDocumentPage;
+import org.example.gp.repository.ScannedDocumentPageRepository;
 import org.example.gp.repository.ScannedDocumentRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
@@ -16,6 +18,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Base64;
+import java.util.List;
 
 /**
  * Разпознава документи (фактури, касови бележки — печатни И РЪКОПИСНИ) чрез
@@ -39,38 +42,64 @@ public class GeminiOcrService {
     private int timeoutSeconds;
 
     private final ScannedDocumentRepository repository;
+    private final ScannedDocumentPageRepository pageRepository;
     private final AuditLogService auditLogService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
             .build();
 
-    public GeminiOcrService(ScannedDocumentRepository repository, AuditLogService auditLogService) {
+    public GeminiOcrService(ScannedDocumentRepository repository, ScannedDocumentPageRepository pageRepository,
+                            AuditLogService auditLogService) {
         this.repository = repository;
+        this.pageRepository = pageRepository;
         this.auditLogService = auditLogService;
     }
 
     private static final String PROMPT = """
-            Ти си счетоводен асистент. Пред теб е снимка на българска фактура, касова бележка
-            или друг счетоводен документ — текстът може да е ПЕЧАТЕН или РЪКОПИСЕН.
-            Прочети внимателно всичко, включително ръкописен текст, подписи с изписани имена,
-            и числа написани на ръка.
+            Ти си счетоводен асистент. Пред теб е снимка (или няколко снимки на последователни
+            листове от ЕДИН И СЪЩ документ) на българска фактура, касова бележка или друг
+            счетоводен документ — текстът може да е ПЕЧАТЕН или РЪКОПИСЕН. Прочети внимателно
+            всичко, включително ръкописен текст, подписи с изписани имена, и числа написани на ръка.
+
+            Ако получиш повече от една снимка, третирай ги КАТО ЕДИН ДОКУМЕНТ (лист 1, лист 2...)
+            и комбинирай информацията от всички листове в един резултат — не връщай отделен
+            резултат за всяка снимка.
+
+            ВАЖНО ПРАВИЛО ЗА ВАЛУТА: българските фактури в момента показват сумите И в лева (лв./BGN),
+            И в евро (€/EUR), защото България premina към еврото. За полетата totalAmount и vatAmount
+            ВИНАГИ връщай САМО стойността в евро (€), никога тази в лева. Ако видиш само една валута,
+            приеми че е еврото. Игнорирай изцяло числата до "лв."/"BGN".
+
+            ВАЖНО ПРАВИЛО ЗА ДДС РЕГИСТРАЦИЯ: провери ДДС номера на доставчика (partnerVatNumber).
+            - Ако номерът започва с "BG" (или "БГ") — доставчикът Е регистриран по ДДС. Върни номера
+              с представката BG (напр. BG831826092).
+            - Ако НЯМА ДДС номер с BG представка никъде на документа — доставчикът НЕ е регистриран
+              по ДДС. В такъв случай: остави partnerVatNumber на null, и ЗАДЪЛЖИТЕЛНО провери дали
+              сборът от единичните цени на артикулите (количество × ediнична цена за всеки ред) се
+              покрива с общата сума (totalAmount). Ако НЕ съвпадат (напр. поради грешно прочетена
+              цифра), опитай се сам да изчислиш правилната обща сума от редовете на артикулите и
+              върни коригираната стойност в totalAmount. Винаги обясни какво си направил в полето
+              "warnings" (напр. "Доставчикът не е регистриран по ДДС — сборът на редовете (120.50)
+              не съвпадаше с изписаната обща сума (125.50), коригирано на 120.50.").
 
             Върни ЕДИНСТВЕНО валиден JSON (без markdown, без ```), с точно тези полета:
             {
-              "rawText": "целият текст, който успя да прочетеш, ред по ред",
+              "rawText": "целият текст, който успя да прочетеш от всички листове, ред по ред",
               "documentNumber": "номер на фактурата/документа или null",
               "documentDate": "дата във формат yyyy-MM-dd или null",
               "documentType": "едно от: Ф-ра, ДИ, КИ, МД, Прот, ОП, ОПС, ПКО, РКО, МО, ББ, ПН — по подразбиране Ф-ра",
-              "totalAmount": число с точка (крайна сума с ДДС) или null,
-              "vatAmount": число с точка (сума на ДДС) или null,
+              "totalAmount": число с точка, В ЕВРО (крайна сума с ДДС) или null,
+              "vatAmount": число с точка, В ЕВРО (сума на ДДС) или null,
+              "isVatRegistered": true или false — дали доставчикът има ДДС номер с BG представка,
               "partnerName": "ime на фирмата-доставчик (не получателя)",
               "partnerMol": "МОЛ на доставчика или null",
               "partnerCity": "град на доставчика или null",
               "partnerAddress": "адрес на доставчика или null",
-              "partnerVatNumber": "ДДС номер, напр. BG831826092, или null",
+              "partnerVatNumber": "ДДС номер с BG представка, напр. BG831826092, или null ако няма",
               "partnerBulstat": "Булстат/ЕИК (9 или 13 цифри) или null",
-              "description": "кратко описание на стоката/услугата или null"
+              "description": "кратко описание на стоката/услугата или null",
+              "warnings": "обяснение при несъответствие в цените, липсваща ДДС регистрация, неясноти между листовете, или null ако всичко е наред"
             }
 
             Ако не си сигурен в дадено поле, върни null за него, но НЕ пропускай полето.
@@ -93,8 +122,8 @@ public class GeminiOcrService {
         }
 
         try {
-            String base64Image = Base64.getEncoder().encodeToString(doc.getFileData());
-            String requestBody = buildRequestBody(base64Image, doc.getContentType());
+            List<ScannedDocumentPage> extraPages = pageRepository.findByScannedDocumentIdOrderByPageNumberAsc(documentId);
+            String requestBody = buildRequestBody(doc, extraPages);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://generativelanguage.googleapis.com/v1beta/models/"
@@ -128,7 +157,7 @@ public class GeminiOcrService {
             applyExtractedFields(doc, extractedJsonText);
             repository.save(doc);
             auditLogService.log("system", doc.getOfficeId(), null, "ocr.success", "OCR",
-                    "documents/" + documentId, "Gemini разпозна документа успешно", "-", true, null);
+                    "documents/" + documentId, "Gemini разпозна документа успешно (" + (extraPages.size() + 1) + " листа)", "-", true, null);
 
         } catch (Exception e) {
             try {
@@ -140,7 +169,7 @@ public class GeminiOcrService {
         }
     }
 
-    private String buildRequestBody(String base64Image, String mimeType) throws Exception {
+    private String buildRequestBody(ScannedDocument doc, List<ScannedDocumentPage> extraPages) throws Exception {
         var root = objectMapper.createObjectNode();
         var contents = root.putArray("contents");
         var content = contents.addObject();
@@ -149,10 +178,19 @@ public class GeminiOcrService {
         var textPart = parts.addObject();
         textPart.put("text", PROMPT);
 
+        // Лист 1 (основната снимка)
         var imagePart = parts.addObject();
         var inlineData = imagePart.putObject("inline_data");
-        inlineData.put("mime_type", mimeType);
-        inlineData.put("data", base64Image);
+        inlineData.put("mime_type", doc.getContentType());
+        inlineData.put("data", Base64.getEncoder().encodeToString(doc.getFileData()));
+
+        // Листове 2, 3... ако документът е многостраничен
+        for (ScannedDocumentPage page : extraPages) {
+            var pagePart = parts.addObject();
+            var pageInline = pagePart.putObject("inline_data");
+            pageInline.put("mime_type", page.getContentType());
+            pageInline.put("data", Base64.getEncoder().encodeToString(page.getFileData()));
+        }
 
         // Искаме детерминиран, стриктен JSON отговор
         var generationConfig = root.putObject("generationConfig");
@@ -193,6 +231,7 @@ public class GeminiOcrService {
         }
 
         doc.setOcrText(textOrNull(data, "rawText"));
+        setIfBlank(doc::getWarnings, doc::setWarnings, textOrNull(data, "warnings"));
 
         setIfBlank(doc::getDocumentNumber, doc::setDocumentNumber, textOrNull(data, "documentNumber"));
         setIfBlank(doc::getDocumentType, doc::setDocumentType,
