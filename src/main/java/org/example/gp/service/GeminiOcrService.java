@@ -109,8 +109,10 @@ public class GeminiOcrService {
     @Async
     public void processDocumentAsync(Long documentId) {
         ScannedDocument doc = repository.findById(documentId).orElse(null);
-        if (doc == null || doc.getContentType() == null || !doc.getContentType().startsWith("image/")) {
-            return; // PDF или друг формат — засега без OCR
+        boolean supported = doc != null && doc.getContentType() != null
+                && (doc.getContentType().startsWith("image/") || doc.getContentType().equals("application/pdf"));
+        if (!supported) {
+            return; // непознат формат — засега без OCR
         }
 
         if (apiKey == null || apiKey.isBlank()) {
