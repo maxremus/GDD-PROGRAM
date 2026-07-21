@@ -35,12 +35,21 @@ public class DocumentExportService {
     private String buildLine(ScannedDocument doc) {
         String[] fields = new String[16];
 
-        fields[0] = orDefault(doc.getOperationType(), "1");
+        boolean isVatRegistered = doc.getPartnerVatNumber() != null && !doc.getPartnerVatNumber().isBlank();
+
+        // Ако потребителят изрично е задал операция/контировка в прегледа — уважаваме я.
+        // Иначе избираме автоматично според това дали доставчикът е регистриран по ДДС:
+        //   - Регистриран  → "304%-401" (знакът % отделя ДДС в сметка 453/1)
+        //   - НЕрегистриран → "304-401"  (без %, без ДДС ред изобщо — цялата сума в 304)
+        String autoOperation = isVatRegistered ? "304%-401" : "304-401";
+        fields[0] = (doc.getOperationType() != null && !doc.getOperationType().isBlank()
+                && !doc.getOperationType().equals("1")) ? doc.getOperationType() : autoOperation;
+
         fields[1] = doc.getDocumentDate() != null ? doc.getDocumentDate().format(DATE_FMT) : "";
         fields[2] = padDocumentNumber(doc.getDocumentNumber());
         fields[3] = orDefault(doc.getDocumentType(), "Ф-ра");
         fields[4] = formatAmount(doc.getTotalAmount());
-        fields[5] = doc.getVatType() != null ? String.valueOf(doc.getVatType()) : "";
+        fields[5] = isVatRegistered ? (doc.getVatType() != null ? String.valueOf(doc.getVatType()) : "") : "";
         fields[6] = orEmpty(doc.getPartnerName());
         fields[7] = orEmpty(doc.getPartnerMol());
         fields[8] = orEmpty(doc.getPartnerCity());
@@ -50,7 +59,10 @@ public class DocumentExportService {
         fields[12] = orEmpty(doc.getBankAccount());
         fields[13] = orEmpty(doc.getDescription());
         fields[14] = orEmpty(doc.getNote());
-        fields[15] = doc.getVatAmount() != null ? formatAmount(doc.getVatAmount()) : "-1";
+        // Без ДДС регистрация → няма ДДС ред изобщо, стойността трябва да е 0.00, не -1 (автоматично).
+        fields[15] = isVatRegistered
+                ? (doc.getVatAmount() != null ? formatAmount(doc.getVatAmount()) : "-1")
+                : "0.00";
 
         return String.join("|", fields);
     }
