@@ -40,7 +40,7 @@ public class DocumentExportService {
         fields[2] = padDocumentNumber(doc.getDocumentNumber());
         fields[3] = orDefault(doc.getDocumentType(), "Ф-ра");
         fields[4] = formatAmount(doc.getTotalAmount());
-        fields[5] = doc.getVatType() != null ? String.valueOf(doc.getVatType()) : "1";
+        fields[5] = doc.getVatType() != null ? String.valueOf(doc.getVatType()) : "";
         fields[6] = orEmpty(doc.getPartnerName());
         fields[7] = orEmpty(doc.getPartnerMol());
         fields[8] = orEmpty(doc.getPartnerCity());

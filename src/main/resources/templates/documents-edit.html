@@ -141,8 +141,11 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Данъчна група (1-27)<span class="info-tip" data-tip="Код по таблицата на Микроинвест за данъчни групи — питайте счетоводителя си кой номер важи, ако не сте сигурни.">ⓘ</span></label>
-                            <input type="number" name="vatType" class="form-control" th:value="${doc.vatType}" placeholder="напр. 1 = ДК">
+                            <label class="form-label">Данъчна група (тип ДДС операция)<span class="info-tip" data-tip="ВАЖНО: кодове 1-10 от старата (2006г.) таблица на Микроинвест вече НЕ се приемат от текущата версия на Делта Про! Ползвайте кодове 11-27: за покупки — 11 ДБДК, 12 ВОПДК, 13 ВОПЧК, 14 ГКор, 15 ПТО. За продажби — 16 Дост20, 17 ВОП, 18 Д.чл82 и т.н. Ако не сте сигурни, оставете празно и проверете точния код от падащото меню 'Операция по ДДС' в самата Делта Про.">ⓘ</span></label>
+                            <input type="number" name="vatType" class="form-control" th:value="${doc.vatType}" placeholder="напр. 16 = Дост20 (продажби 20%)">
+                            <div class="form-text text-danger" th:if="${doc.vatType != null and doc.vatType < 11}">
+                                ⚠️ Кодове под 11 (стара 2006г. таблица) обикновено вече се отхвърлят от Делта Про — провери в падащото меню "Операция по ДДС" там какъв код очаква.
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Операция/контировка<span class="info-tip" data-tip="Предефинирана операция (число 1-8) или ръчна счетоводна контировка (напр. 304%-401).">ⓘ</span></label>
