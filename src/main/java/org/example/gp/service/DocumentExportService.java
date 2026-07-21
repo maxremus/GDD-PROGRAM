@@ -49,7 +49,11 @@ public class DocumentExportService {
         fields[2] = padDocumentNumber(doc.getDocumentNumber());
         fields[3] = orDefault(doc.getDocumentType(), "Ф-ра");
         fields[4] = formatAmount(doc.getTotalAmount());
-        fields[5] = isVatRegistered ? (doc.getVatType() != null ? String.valueOf(doc.getVatType()) : "") : "";
+        // Поле 6 изисква стойност — не приема да е празно. За нерегистриран по ДДС
+        // партньор ползваме код 9 (СНЛ = "Сделки с нерегистрирани лица").
+        fields[5] = isVatRegistered
+                ? (doc.getVatType() != null ? String.valueOf(doc.getVatType()) : "1")
+                : "9";
         fields[6] = orEmpty(doc.getPartnerName());
         fields[7] = orEmpty(doc.getPartnerMol());
         fields[8] = orEmpty(doc.getPartnerCity());
