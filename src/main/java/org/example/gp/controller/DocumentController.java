@@ -6,7 +6,6 @@ import org.example.gp.entity.ScannedDocument;
 import org.example.gp.entity.User;
 import org.example.gp.repository.UserRepository;
 import org.example.gp.service.CompanyService;
-import org.example.gp.service.DocumentExportService;
 import org.example.gp.service.DocumentService;
 import org.example.gp.service.DocumentXmlExportService;
 import org.example.gp.service.GeminiOcrService;
@@ -33,20 +32,17 @@ public class DocumentController {
     private final CompanyService companyService;
     private final UserRepository userRepository;
     private final GeminiOcrService ocrService;
-    private final DocumentExportService documentExportService;
     private final DocumentXmlExportService documentXmlExportService;
 
     public DocumentController(DocumentService documentService,
                               CompanyService companyService,
                               UserRepository userRepository,
                               GeminiOcrService ocrService,
-                              DocumentExportService documentExportService,
                               DocumentXmlExportService documentXmlExportService) {
         this.documentService = documentService;
         this.companyService = companyService;
         this.userRepository = userRepository;
         this.ocrService = ocrService;
-        this.documentExportService = documentExportService;
         this.documentXmlExportService = documentXmlExportService;
     }
 
@@ -223,31 +219,6 @@ public class DocumentController {
         return "redirect:/documents";
     }
 
-    @GetMapping("/export")
-    @ResponseBody
-    public ResponseEntity<byte[]> exportSelected(@RequestParam List<Long> ids) {
-        User user = getCurrentUser();
-        Long officeId = getCurrentOfficeId(user);
-
-        List<ScannedDocument> toExport = new ArrayList<>();
-        for (Long id : ids) {
-            ScannedDocument doc = documentService.getById(id);
-            if (officeId == null || officeId.equals(doc.getOfficeId())) {
-                toExport.add(doc);
-            }
-        }
-
-        byte[] content = documentExportService.generateImportFile(toExport);
-
-        for (ScannedDocument doc : toExport) {
-            documentService.markStatus(doc.getId(), officeId, DocumentStatus.EXPORTED);
-        }
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Import.txt\"")
-                .contentType(MediaType.parseMediaType("text/plain; charset=windows-1251"))
-                .body(content);
-    }
 
     @GetMapping("/export-xml")
     @ResponseBody

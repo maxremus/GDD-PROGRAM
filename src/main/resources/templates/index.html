@@ -119,6 +119,12 @@
             </a>
 
             <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')"
+               th:href="@{/bank-statements}"
+               class="btn btn-outline-primary">
+                🏦 Извлечения
+            </a>
+
+            <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')"
                th:href="@{/companies/archived}"
                class="btn btn-outline-secondary">
                 📦 Архив

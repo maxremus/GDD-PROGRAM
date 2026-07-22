@@ -1,6 +1,8 @@
 package org.example.gp.service;
 
+import org.example.gp.entity.BankTransaction;
 import org.example.gp.entity.ScannedDocument;
+import org.example.gp.entity.TransactionDirection;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -116,6 +118,78 @@ public class DocumentXmlExportService {
         credit.setAttribute("AccountNumber", "401");
         credit.setAttribute("Direction", "Credit");
         credit.setAttribute("VatTerm", "1");
+        credit.setAttribute("Amount", amount);
+        detailsEl.appendChild(credit);
+
+        accounting.appendChild(detailsEl);
+
+        return accounting;
+    }
+
+    /** Генерира TransferData XML за банкови транзакции (плащания/постъпления). */
+    public byte[] generateBankTransferXml(List<BankTransaction> transactions) throws Exception {
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        Document xml = db.newDocument();
+
+        Element root = xml.createElementNS("urn:Transfer", "TransferData");
+        xml.appendChild(root);
+
+        Element accountingsEl = xml.createElement("Accountings");
+        root.appendChild(accountingsEl);
+
+        int number = 1;
+        for (BankTransaction tx : transactions) {
+            accountingsEl.appendChild(buildBankAccounting(xml, tx, number));
+            number++;
+        }
+
+        return serialize(xml);
+    }
+
+    private Element buildBankAccounting(Document xml, BankTransaction tx, int number) {
+        Element accounting = xml.createElement("Accounting");
+
+        String accountingDate = tx.getTransactionDate() != null
+                ? tx.getTransactionDate().format(DATE_FMT)
+                : java.time.LocalDate.now().format(DATE_FMT);
+
+        accounting.setAttribute("AccountingDate", accountingDate);
+        accounting.setAttribute("Number", padNumber(number));
+        accounting.setAttribute("Reference", "");
+        accounting.setAttribute("OptionalReference", "");
+        accounting.setAttribute("Term", orEmpty(tx.getDescription()));
+        accounting.setAttribute("Vies", "0");
+
+        // <Company> — контрагентът по банковата транзакция (ако е разпознат)
+        if (tx.getCounterpartyName() != null && !tx.getCounterpartyName().isBlank()) {
+            Element companyEl = xml.createElement("Company");
+            companyEl.setAttribute("Name", tx.getCounterpartyName());
+            accounting.appendChild(companyEl);
+        }
+
+        // <AccountingDetails> — Дебит/Кредит според посоката:
+        //   OUT (плащане): Дебит counterAccount (напр. 401) / Кредит ourAccount (503)
+        //   IN  (постъпление): Дебит ourAccount (503) / Кредит counterAccount (напр. 411)
+        Element detailsEl = xml.createElement("AccountingDetails");
+        String amount = formatAmount(tx.getAmount());
+
+        String debitAccount = tx.getDirection() == TransactionDirection.OUT
+                ? orDefault(tx.getCounterAccount(), "401")
+                : orDefault(tx.getOurAccount(), "503");
+        String creditAccount = tx.getDirection() == TransactionDirection.OUT
+                ? orDefault(tx.getOurAccount(), "503")
+                : orDefault(tx.getCounterAccount(), "411");
+
+        Element debit = xml.createElement("AccountingDetail");
+        debit.setAttribute("AccountNumber", debitAccount);
+        debit.setAttribute("Direction", "Debit");
+        debit.setAttribute("Amount", amount);
+        detailsEl.appendChild(debit);
+
+        Element credit = xml.createElement("AccountingDetail");
+        credit.setAttribute("AccountNumber", creditAccount);
+        credit.setAttribute("Direction", "Credit");
         credit.setAttribute("Amount", amount);
         detailsEl.appendChild(credit);
 
