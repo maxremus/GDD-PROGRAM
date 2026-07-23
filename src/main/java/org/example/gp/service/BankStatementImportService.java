@@ -224,8 +224,10 @@ public class BankStatementImportService {
                     .description(colDesc != -1 ? get(row, colDesc) : null)
                     .counterpartyName(colCounterparty != -1 ? get(row, colCounterparty) : null)
                     .counterpartyIban(colIban != -1 ? get(row, colIban) : null)
-                    .ourAccount("503")
-                    .counterAccount(direction == TransactionDirection.OUT ? "401" : "411")
+                    // При плащане (OUT): Дебит 401 (доставчик) / Кредит 503 (банката).
+                    // При постъпление (IN): Дебит 503 (банката) / Кредит 411 (клиент).
+                    .debitAccount(direction == TransactionDirection.OUT ? "401" : "503")
+                    .creditAccount(direction == TransactionDirection.OUT ? "503" : "411")
                     .status(DocumentStatus.NEW)
                     .uploadedBy(uploadedBy)
                     .uploadedAt(LocalDateTime.now())

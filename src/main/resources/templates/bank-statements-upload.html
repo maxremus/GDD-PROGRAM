@@ -48,12 +48,14 @@
                     <span class="fw-semibold">Избери CSV или Excel файл</span>
                     <div id="fileName" class="small text-muted mt-1">Няма избран файл</div>
                 </label>
-                <input type="file" id="fileInput" name="file" accept=".csv,.xlsx,.xls"
+                <input type="file" id="fileInput" name="file" accept=".csv,.xlsx,.xls,.pdf"
                        required style="display:none;" onchange="document.getElementById('fileName').textContent = this.files[0]?.name || 'Няма избран файл'">
 
                 <div class="alert alert-light border mt-3 small">
-                    ℹ️ Системата разпознава колони по ime (Дата, Сума или Дебит/Кредит, Основание, Контрагент, IBAN).
-                    Ако файлът на банката ти не се разпознае, кажи на асистента и ще напасне parser-а точно към твоя формат.
+                    ℹ️ Приема CSV, Excel и PDF файлове. За CSV/Excel системата разпознава колони по ime
+                    (Дата, Сума или Дебит/Кредит, Основание, Контрагент, IBAN). За PDF извлечения — Gemini
+                    AI чете директно таблицата от документа. Ако файлът на банката ти не се разпознае,
+                    кажи на асистента и ще напасне логиката точно към твоя формат.
                 </div>
 
                 <div class="d-grid mt-3">

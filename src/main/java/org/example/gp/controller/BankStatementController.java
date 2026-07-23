@@ -9,6 +9,7 @@ import org.example.gp.repository.UserRepository;
 import org.example.gp.service.BankStatementImportService;
 import org.example.gp.service.CompanyService;
 import org.example.gp.service.DocumentXmlExportService;
+import org.example.gp.service.GeminiBankStatementService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,17 +30,20 @@ import java.util.List;
 public class BankStatementController {
 
     private final BankStatementImportService importService;
+    private final GeminiBankStatementService geminiBankStatementService;
     private final BankTransactionRepository repository;
     private final CompanyService companyService;
     private final UserRepository userRepository;
     private final DocumentXmlExportService xmlExportService;
 
     public BankStatementController(BankStatementImportService importService,
+                                   GeminiBankStatementService geminiBankStatementService,
                                    BankTransactionRepository repository,
                                    CompanyService companyService,
                                    UserRepository userRepository,
                                    DocumentXmlExportService xmlExportService) {
         this.importService = importService;
+        this.geminiBankStatementService = geminiBankStatementService;
         this.repository = repository;
         this.companyService = companyService;
         this.userRepository = userRepository;
@@ -66,27 +70,39 @@ public class BankStatementController {
     public String upload(@RequestParam("file") MultipartFile file, RedirectAttributes redirectAttributes) {
         User user = getCurrentUser();
         Long officeId = getCurrentOfficeId(user);
+        String uploadedBy = user != null ? user.getUsername() : "unknown";
+        String filename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
 
         try {
-            BankStatementImportService.ParseResult parsed = importService.parse(
-                    file, officeId, user != null ? user.getUsername() : "unknown");
+            List<BankTransaction> parsedTransactions;
+            List<String> errors;
 
-            if (!parsed.transactions.isEmpty()) {
-                repository.saveAll(parsed.transactions);
+            if (filename.endsWith(".pdf")) {
+                GeminiBankStatementService.ParseResult parsed = geminiBankStatementService.parse(file, officeId, uploadedBy);
+                parsedTransactions = parsed.transactions;
+                errors = parsed.errors;
+            } else {
+                BankStatementImportService.ParseResult parsed = importService.parse(file, officeId, uploadedBy);
+                parsedTransactions = parsed.transactions;
+                errors = parsed.errors;
+            }
+
+            if (!parsedTransactions.isEmpty()) {
+                repository.saveAll(parsedTransactions);
             }
 
             StringBuilder message = new StringBuilder();
-            message.append("Разпознати транзакции: ").append(parsed.transactions.size()).append(".");
-            if (!parsed.errors.isEmpty()) {
-                message.append(" Пропуснати редове: ").append(parsed.errors.size()).append(".");
+            message.append("Разпознати транзакции: ").append(parsedTransactions.size()).append(".");
+            if (!errors.isEmpty()) {
+                message.append(" Пропуснати редове: ").append(errors.size()).append(".");
             }
 
-            if (parsed.transactions.isEmpty()) {
+            if (parsedTransactions.isEmpty()) {
                 redirectAttributes.addFlashAttribute("errorMessage",
-                        "Няма разпознати транзакции. " + String.join(" ", parsed.errors));
-            } else if (!parsed.errors.isEmpty()) {
+                        "Няма разпознати транзакции. " + String.join(" ", errors));
+            } else if (!errors.isEmpty()) {
                 redirectAttributes.addFlashAttribute("successMessage",
-                        message + " Детайли: " + String.join(" ", parsed.errors));
+                        message + " Детайли: " + String.join(" ", errors));
             } else {
                 redirectAttributes.addFlashAttribute("successMessage", message.toString());
             }
@@ -120,8 +136,8 @@ public class BankStatementController {
                        @RequestParam(required = false) String description,
                        @RequestParam(required = false) String counterpartyName,
                        @RequestParam(required = false) String counterpartyIban,
-                       @RequestParam(required = false) String ourAccount,
-                       @RequestParam(required = false) String counterAccount,
+                       @RequestParam(required = false) String debitAccount,
+                       @RequestParam(required = false) String creditAccount,
                        RedirectAttributes redirectAttributes) {
         User user = getCurrentUser();
         Long officeId = getCurrentOfficeId(user);
@@ -142,8 +158,8 @@ public class BankStatementController {
         tx.setDescription(description);
         tx.setCounterpartyName(counterpartyName);
         tx.setCounterpartyIban(counterpartyIban);
-        tx.setOurAccount(ourAccount != null && !ourAccount.isBlank() ? ourAccount : "503");
-        tx.setCounterAccount(counterAccount);
+        tx.setDebitAccount(debitAccount != null && !debitAccount.isBlank() ? debitAccount : "503");
+        tx.setCreditAccount(creditAccount);
         tx.setStatus(DocumentStatus.REVIEWED);
 
         repository.save(tx);
@@ -164,6 +180,22 @@ public class BankStatementController {
             redirectAttributes.addFlashAttribute("successMessage", "Транзакцията е изтрита.");
         }
         return "redirect:/bank-statements";
+    }
+
+    @PostMapping("/delete-selected")
+    @ResponseBody
+    public ResponseEntity<Void> deleteSelected(@RequestParam List<Long> ids) {
+        User user = getCurrentUser();
+        Long officeId = getCurrentOfficeId(user);
+
+        for (Long id : ids) {
+            repository.findById(id).ifPresent(tx -> {
+                if (officeId == null || officeId.equals(tx.getOfficeId())) {
+                    repository.deleteById(id);
+                }
+            });
+        }
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/export-xml")

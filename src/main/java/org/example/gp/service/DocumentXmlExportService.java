@@ -178,18 +178,14 @@ public class DocumentXmlExportService {
             accounting.appendChild(companyEl);
         }
 
-        // <AccountingDetails> — Дебит/Кредит според посоката:
-        //   OUT (плащане): Дебит counterAccount (напр. 401) / Кредит ourAccount (503)
-        //   IN  (постъпление): Дебит ourAccount (503) / Кредит counterAccount (напр. 411)
+        // <AccountingDetails> — Дебит/Кредит сметките се вземат директно от полетата,
+        // редактирани от счетоводителя в прегледа (без скрита логика за размяна).
         Element detailsEl = xml.createElement("AccountingDetails");
         String amount = formatAmount(tx.getAmount());
 
-        String debitAccount = tx.getDirection() == TransactionDirection.OUT
-                ? orDefault(tx.getCounterAccount(), "401")
-                : orDefault(tx.getOurAccount(), "503");
-        String creditAccount = tx.getDirection() == TransactionDirection.OUT
-                ? orDefault(tx.getOurAccount(), "503")
-                : orDefault(tx.getCounterAccount(), "411");
+        String debitAccount = orDefault(tx.getDebitAccount(), "503");
+        String creditAccount = orDefault(tx.getCreditAccount(),
+                tx.getDirection() == TransactionDirection.OUT ? "401" : "411");
 
         Element debit = xml.createElement("AccountingDetail");
         debit.setAttribute("AccountNumber", debitAccount);

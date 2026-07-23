@@ -47,12 +47,12 @@ public class BankTransaction {
     private String counterpartyName;
     private String counterpartyIban;
 
-    /** Нашата банкова сметка в сметкоплана, напр. 503. */
+    /** Дебитна сметка на счетоводния запис (напр. 401 при плащане, 503 при постъпление). */
     @Builder.Default
-    private String ourAccount = "503";
+    private String debitAccount = "503";
 
-    /** Насрещна сметка, напр. 401 (доставчици) при плащане или 411 (клиенти) при постъпление. */
-    private String counterAccount;
+    /** Кредитна сметка на счетоводния запис (напр. 503 при плащане, 411 при постъпление). */
+    private String creditAccount;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
