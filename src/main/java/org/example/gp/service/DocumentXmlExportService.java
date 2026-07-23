@@ -93,14 +93,19 @@ public class DocumentXmlExportService {
             accounting.appendChild(companyEl);
         }
 
-        // <AccountingDetails> — прост 2-редов запис: Дебит 304 (стока/услуга) / Кредит 401 (доставчик).
-        // Без отделен ред за ДДС сметка 453 — по образец от реалния export, Делта Про го смята сама.
+        // <AccountingDetails> — сметките се вземат от полето "Операция/контировка" (напр. "304%-401"
+        // или "501-401"), ако потребителят го е попълнил ръчно в прегледа. Иначе — автоматичен избор:
+        // 304%-401 (с ДДС ред) при регистриран по ДДС партньор, 304-401 (без ДДС) иначе.
+        String[] accounts = resolveAccounts(doc.getOperationType(), isVatRegistered);
+        String debitAccount = accounts[0];
+        String creditAccount = accounts[1];
+
         Element detailsEl = xml.createElement("AccountingDetails");
 
         String amount = formatAmount(doc.getTotalAmount());
 
         Element debit = xml.createElement("AccountingDetail");
-        debit.setAttribute("AccountNumber", "304");
+        debit.setAttribute("AccountNumber", debitAccount);
         debit.setAttribute("Direction", "Debit");
         debit.setAttribute("VatTerm", "1");
         debit.setAttribute("Amount", amount);
@@ -108,14 +113,19 @@ public class DocumentXmlExportService {
         if (doc.getDescription() != null && !doc.getDescription().isBlank()) {
             Element materialDetail = xml.createElement("AccountingMaterialDetail");
             materialDetail.setAttribute("ProductName", doc.getDescription());
-            materialDetail.setAttribute("Price", "0.000000");
-            materialDetail.setAttribute("Quantity", "0.000000");
+            // Реално количество/цена, ако са попълнени в прегледа; иначе разумен fallback:
+            // количество 1 и ediнична цена = общата сума (по-добре от твърдо закодирани нули).
+            BigDecimal qty = doc.getQuantity() != null ? doc.getQuantity() : BigDecimal.ONE;
+            BigDecimal price = doc.getUnitPrice() != null ? doc.getUnitPrice()
+                    : (doc.getTotalAmount() != null ? doc.getTotalAmount() : BigDecimal.ZERO);
+            materialDetail.setAttribute("Price", formatAmount(price));
+            materialDetail.setAttribute("Quantity", formatAmount(qty));
             debit.appendChild(materialDetail);
         }
         detailsEl.appendChild(debit);
 
         Element credit = xml.createElement("AccountingDetail");
-        credit.setAttribute("AccountNumber", "401");
+        credit.setAttribute("AccountNumber", creditAccount);
         credit.setAttribute("Direction", "Credit");
         credit.setAttribute("VatTerm", "1");
         credit.setAttribute("Amount", amount);
@@ -196,6 +206,34 @@ public class DocumentXmlExportService {
         accounting.appendChild(detailsEl);
 
         return accounting;
+    }
+
+    /**
+     * Парсва полето "Операция/контировка" (напр. "304%-401", "501-401") в
+     * двойка [дебит сметка, кредит сметка]. Знакът "%" (ако е след дебит
+     * сметката) е чисто визуален маркер за "с ДДС ред" в стария формат и
+     * се маха, за да остане чист номер на сметка.
+     * Ако полето е празно или е старото подразбиращо се "1" — избира
+     * автоматично 304-401, според ДДС регистрацията на партньора.
+     */
+    private String[] resolveAccounts(String operationType, boolean isVatRegistered) {
+        boolean hasCustomValue = operationType != null && !operationType.isBlank()
+                && !operationType.equals("1");
+
+        if (hasCustomValue && operationType.contains("-")) {
+            String[] parts = operationType.split("-", 2);
+            String debitPart = parts[0].trim();
+            String creditPart = parts[1].trim();
+            if (debitPart.endsWith("%")) {
+                debitPart = debitPart.substring(0, debitPart.length() - 1).trim();
+            }
+            if (!debitPart.isEmpty() && !creditPart.isEmpty()) {
+                return new String[]{debitPart, creditPart};
+            }
+        }
+
+        // Автоматичен fallback
+        return new String[]{"304", "401"};
     }
 
     private String padNumber(int number) {

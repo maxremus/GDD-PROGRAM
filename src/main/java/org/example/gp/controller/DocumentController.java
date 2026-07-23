@@ -186,6 +186,8 @@ public class DocumentController {
                            @RequestParam(required = false) String partnerBulstat,
                            @RequestParam(required = false) String bankAccount,
                            @RequestParam(required = false) String description,
+                           @RequestParam(required = false) BigDecimal quantity,
+                           @RequestParam(required = false) BigDecimal unitPrice,
                            RedirectAttributes redirectAttributes) {
         User user = getCurrentUser();
         Long officeId = getCurrentOfficeId(user);
@@ -211,6 +213,8 @@ public class DocumentController {
         doc.setPartnerBulstat(partnerBulstat);
         doc.setBankAccount(bankAccount);
         doc.setDescription(description);
+        doc.setQuantity(quantity);
+        doc.setUnitPrice(unitPrice);
         doc.setStatus(DocumentStatus.REVIEWED);
 
         documentService.save(doc);

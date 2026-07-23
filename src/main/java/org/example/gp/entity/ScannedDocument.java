@@ -109,6 +109,12 @@ public class ScannedDocument {
     @Column(length = 500)
     private String description;
 
+    /** Количество на основния артикул — за автоматично попълване в материалния ред при износ. */
+    private java.math.BigDecimal quantity;
+
+    /** Единична цена на основния артикул — за автоматично попълване в материалния ред при износ. */
+    private java.math.BigDecimal unitPrice;
+
     /** Общ брой листове/страници на документа (1 = само основната снимка). */
     @Builder.Default
     private int pageCount = 1;

@@ -99,6 +99,8 @@ public class GeminiOcrService {
               "partnerVatNumber": "ДДС номер с BG представка, напр. BG831826092, или null ако няма",
               "partnerBulstat": "Булстат/ЕИК (9 или 13 цифри) или null",
               "description": "кратко описание на стоката/услугата или null",
+              "quantity": число с точка — общото количество на основния артикул/artikuli (напр. 10), или null ако не е ясно или има много различни artikuli,
+              "unitPrice": число с точка — ediнична цена на основния артикул (без ДДС, в евро), или null ако не е ясно или има много различни artikuli,
               "warnings": "обяснение при несъответствие в цените, липсваща ДДС регистрация, неясноти между листовете, или null ако всичко е наред"
             }
 
@@ -262,6 +264,14 @@ public class GeminiOcrService {
         if (doc.getVatAmount() == null) {
             BigDecimal amount = numberOrNull(data, "vatAmount");
             if (amount != null) doc.setVatAmount(amount);
+        }
+        if (doc.getQuantity() == null) {
+            BigDecimal qty = numberOrNull(data, "quantity");
+            if (qty != null) doc.setQuantity(qty);
+        }
+        if (doc.getUnitPrice() == null) {
+            BigDecimal price = numberOrNull(data, "unitPrice");
+            if (price != null) doc.setUnitPrice(price);
         }
     }
 
