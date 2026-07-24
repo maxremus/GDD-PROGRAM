@@ -32,7 +32,8 @@
         <div class="d-flex gap-2">
             <a th:href="@{/companies}" class="btn btn-light btn-sm">🏢 Начало</a>
             <button type="button" class="btn btn-danger btn-sm" onclick="deleteSelected()">🗑️ Изтрий избраните</button>
-            <button type="button" class="btn btn-success btn-sm" onclick="exportSelected()">📤 Експорт (XML)</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="saveAllClicked(event)">💾 Запази всички</button>
+            <button type="button" class="btn btn-success btn-sm" onclick="exportSelected(event)">📤 Експорт (XML)</button>
             <a th:href="@{/bank-statements/upload}" class="btn btn-light btn-sm">⬆️ Качи извлечение</a>
         </div>
     </div>
@@ -139,9 +140,50 @@
         return Array.from(checked).map(cb => cb.value);
     }
 
-    function exportSelected() {
+    async function saveRow(id) {
+        const form = document.getElementById('form-' + id);
+        if (!form) return;
+        const formData = new FormData(form);
+        await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: { [csrfHeader]: csrfToken }
+        });
+    }
+
+    async function saveAllVisible() {
+        const rows = document.querySelectorAll('.tx-checkbox');
+        for (const cb of rows) {
+            await saveRow(cb.value);
+        }
+    }
+
+    async function saveAllClicked(evt) {
+        const btn = evt.currentTarget;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⏳ Запазвам...';
+        await saveAllVisible();
+        btn.disabled = false;
+        btn.textContent = originalText;
+        window.location.reload();
+    }
+
+    async function exportSelected(evt) {
         const ids = getSelectedIds();
         if (!ids) return;
+
+        const btn = evt.currentTarget;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⏳ Запазвам промените...';
+
+        // Първо запазваме текущите стойности от полетата на избраните редове,
+        // за да не се изнесат стари/дефолтни данни от базата.
+        for (const id of ids) {
+            await saveRow(id);
+        }
+
         const params = ids.map(id => 'ids=' + encodeURIComponent(id)).join('&');
         window.location.href = exportUrl + '?' + params;
     }
