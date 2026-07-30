@@ -38,5 +38,8 @@ public class User {
     /** Показно ime на кантората (само за ROLE_OFFICE потребителя) */
     private String officeName;
 
+    /** ЕИК / БУЛСТАТ на кантората (по избор при регистрация) */
+    private String officeEik;
+
     private String role;
 }

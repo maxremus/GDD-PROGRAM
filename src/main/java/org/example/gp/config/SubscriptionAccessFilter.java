@@ -62,10 +62,13 @@ public class SubscriptionAccessFilter extends OncePerRequestFilter {
         // Проверяваме дали кантората има активен абонамент
         if (!subscriptionService.hasAccess(user.getOfficeId())) {
             if (!response.isCommitted()) {
+                request.getSession().setAttribute("subscriptionBlocked", true);
                 response.sendRedirect("/subscription?expired=true");
             }
             return;
         }
+
+        request.getSession().removeAttribute("subscriptionBlocked");
 
         filterChain.doFilter(request, response);
     }

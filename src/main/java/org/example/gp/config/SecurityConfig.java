@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.example.gp.entity.User;
 import org.example.gp.repository.UserRepository;
 import org.example.gp.service.AuditLogService;
+import org.example.gp.service.SubscriptionService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -26,13 +27,16 @@ public class SecurityConfig {
     private final SubscriptionAccessFilter subscriptionAccessFilter;
     private final AuditLogService auditLogService;
     private final UserRepository userRepository;
+    private final SubscriptionService subscriptionService;
 
     public SecurityConfig(SubscriptionAccessFilter subscriptionAccessFilter,
                            AuditLogService auditLogService,
-                           UserRepository userRepository) {
+                           UserRepository userRepository,
+                           SubscriptionService subscriptionService) {
         this.subscriptionAccessFilter = subscriptionAccessFilter;
         this.auditLogService = auditLogService;
         this.userRepository = userRepository;
+        this.subscriptionService = subscriptionService;
     }
 
     private String clientIp(HttpServletRequest request) {
@@ -88,7 +92,14 @@ public class SecurityConfig {
                             user != null ? user.getRole() : null,
                             "auth.login", "POST", "/login", "-",
                             clientIp(request), true, null);
-                    response.sendRedirect(request.getContextPath() + "/companies");
+
+                    String redirectPath = "/companies";
+                    if (user != null && user.getOfficeId() != null
+                            && !"ROLE_ADMIN".equals(user.getRole())
+                            && !subscriptionService.hasAccess(user.getOfficeId())) {
+                        redirectPath = "/subscription?expired=true";
+                    }
+                    response.sendRedirect(request.getContextPath() + redirectPath);
                 })
                 .failureHandler((request, response, exception) -> {
                     String attemptedUser = request.getParameter("username");

@@ -1,5 +1,6 @@
 package org.example.gp.config;
 
+import org.example.gp.config.SubscriptionConstants;
 import org.example.gp.entity.*;
 import org.example.gp.repository.SubscriptionRepository;
 import org.example.gp.repository.UserRepository;
@@ -40,21 +41,35 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("✅ Admin потребител създаден: admin / admin123");
         }
 
-        // --- Безплатен вечен абонамент за Диана Кирилови ЕООД ---
-        // officeId = 1000000001L — фиксиран ID за тази кантора
-        final Long DIANA_OFFICE_ID = 1000000001L;
+        // --- Безплатен вечен абонамент за ДИАНА - КИРИЛОВИ ЕООД (ЕИК 1781774289123) ---
+        final Long DIANA_OFFICE_ID = SubscriptionConstants.EXEMPT_OFFICE_ID;
 
-        if (userRepository.findByUsername("diana").isEmpty()) {
+        userRepository.findByUsername("diana").ifPresentOrElse(diana -> {
+            boolean updated = false;
+            if (diana.getOfficeEik() == null || !SubscriptionConstants.EXEMPT_EIK.equals(diana.getOfficeEik())) {
+                diana.setOfficeEik(SubscriptionConstants.EXEMPT_EIK);
+                updated = true;
+            }
+            if (diana.getOfficeName() == null
+                    || !SubscriptionConstants.EXEMPT_OFFICE_NAME.equalsIgnoreCase(diana.getOfficeName().trim())) {
+                diana.setOfficeName(SubscriptionConstants.EXEMPT_OFFICE_NAME);
+                updated = true;
+            }
+            if (updated) {
+                userRepository.save(diana);
+            }
+        }, () -> {
             User diana = User.builder()
                     .username("diana")
                     .password(passwordEncoder.encode("diana123"))
                     .role("ROLE_OFFICE")
                     .officeId(DIANA_OFFICE_ID)
-                    .officeName("Диана Кирилови ЕООД")
+                    .officeName(SubscriptionConstants.EXEMPT_OFFICE_NAME)
+                    .officeEik(SubscriptionConstants.EXEMPT_EIK)
                     .build();
             userRepository.save(diana);
-            System.out.println("✅ Потребител Диана Кирилови ЕООД създаден: diana / diana123");
-        }
+            System.out.println("✅ Потребител ДИАНА - КИРИЛОВИ ЕООД създаден: diana / diana123");
+        });
 
         // Вечен ACTIVE абонамент — без Stripe, без изтичане
         if (subscriptionRepository.findByOfficeId(DIANA_OFFICE_ID).isEmpty()) {
@@ -70,7 +85,7 @@ public class DataInitializer implements CommandLineRunner {
                     .updatedAt(LocalDateTime.now())
                     .build();
             subscriptionRepository.save(freeSub);
-            System.out.println("✅ Вечен безплатен Pro абонамент за Диана Кирилови ЕООД активиран.");
+            System.out.println("✅ Вечен безплатен Pro абонамент за ДИАНА - КИРИЛОВИ ЕООД активиран.");
         }
 
         System.out.println("=====================================================");

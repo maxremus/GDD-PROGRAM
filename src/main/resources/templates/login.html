@@ -66,6 +66,9 @@
         <div th:if="${param.expired}" class="alert alert-warning py-2 mb-3">
             ⏳ Сесията ви е изтекла (дълго бездействие). Моля, влезте отново.
         </div>
+        <div th:if="${param.subscriptionExpired}" class="alert alert-danger py-2 mb-3">
+            🔒 Абонаментът на вашата кантора е изтекъл. Влезте отново и изберете план за да възстановите достъпа.
+        </div>
         <div th:if="${param.resetSuccess}" class="alert alert-success py-2 mb-3">
             ✅ Паролата е сменена успешно! Вече може да влезете с новата парола.
         </div>
