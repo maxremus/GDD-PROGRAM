@@ -164,12 +164,31 @@ public class DocumentXmlExportService {
                 ? tx.getTransactionDate().format(DATE_FMT)
                 : java.time.LocalDate.now().format(DATE_FMT);
 
+        String monthNumber = tx.getTransactionDate() != null
+                ? String.format("%02d", tx.getTransactionDate().getMonthValue())
+                : String.format("%02d", java.time.LocalDate.now().getMonthValue());
+
         accounting.setAttribute("AccountingDate", accountingDate);
         accounting.setAttribute("Number", padNumber(number));
         accounting.setAttribute("Reference", "");
         accounting.setAttribute("OptionalReference", "");
-        accounting.setAttribute("Term", orEmpty(tx.getDescription()));
-        accounting.setAttribute("Vies", "0");
+        // "Term" е свободен текст — тук ясно отбелязваме, че записът идва от банково
+        // извлечение, плюс оригиналното основание на транзакцията.
+        accounting.setAttribute("Term", "Банково извлечение " + monthNumber + " - " + orEmpty(tx.getDescription()));
+        // Забележка: НЕ добавяме атрибут Vies тук — банковите транзакции нямат връзка с
+        // VIES декларации, а XSD схемата на Делта Про отхвърля "0" (enum constraint failed).
+        // По-рано опитахме Vies="0" и Делта Про върна грешка при импорт — просто пропускаме атрибута.
+
+        // <Document> — номерът съдържа месеца (01-12) на транзакцията, за да личи
+        // от кое извлечение идва записът: напр. "06-0000000005" за юни.
+        // DocumentType="1" се ползва временно (същата стойност, доказано валидна за
+        // фактурите) — ако намериш точния код за "Банково бордеро/ББ" в Делта Про,
+        // кажи ми и ще го сложа прецизно вместо тази обща стойност.
+        Element documentEl = xml.createElement("Document");
+        documentEl.setAttribute("Date", accountingDate);
+        documentEl.setAttribute("Number", monthNumber + "-" + padNumber(number));
+        documentEl.setAttribute("DocumentType", "1");
+        accounting.appendChild(documentEl);
 
         // <Company> — контрагентът по банковата транзакция (ако е разпознат)
         if (tx.getCounterpartyName() != null && !tx.getCounterpartyName().isBlank()) {

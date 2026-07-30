@@ -3,6 +3,7 @@ package org.example.gp.repository;
 import org.example.gp.entity.BankTransaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface BankTransactionRepository extends JpaRepository<BankTransaction, Long> {
@@ -10,4 +11,8 @@ public interface BankTransactionRepository extends JpaRepository<BankTransaction
     List<BankTransaction> findByOfficeIdOrderByTransactionDateDesc(Long officeId);
 
     List<BankTransaction> findAllByOrderByTransactionDateDesc(); // за ADMIN
+
+    List<BankTransaction> findByUploadedAtBefore(LocalDateTime cutoff);
+
+    void deleteByUploadedAtBefore(LocalDateTime cutoff);
 }
