@@ -3,6 +3,7 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="bg">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Работени фирми</title>
 
@@ -81,6 +82,15 @@
 
         .empty-row:hover td {
             background-color: #dddddd !important;
+        }
+
+        .note-row td {
+            background-color: #fff3b0 !important;
+            transition: 0.2s;
+        }
+
+        .note-row:hover td {
+            background-color: #ffe98a !important;
         }
 
         .btn-custom {
@@ -222,7 +232,10 @@
                     <tr th:each="c : ${companies}"
 
                         th:class="${
-                            c.statistics2 != null ?
+                            (c.workedNote != null and !#strings.isEmpty(c.workedNote)) ?
+                                'note-row' :
+
+                            (c.statistics2 != null ?
 
                             (c.statistics2.toString() == 'YES' ?
                                 'yes-row' :
@@ -231,7 +244,7 @@
                                     'no-row' :
                                     'empty-row'))
 
-                            : 'empty-row'
+                            : 'empty-row')
                         }">
 
                         <!-- COMPANY -->
@@ -265,21 +278,32 @@
                                        th:value="${selectedYear}">
 
                                 <select name="status"
-                                        class="form-select status-select"
+                                        class="form-select status-select mb-2"
                                         onchange="this.form.submit()">
 
                                     <option th:each="s : ${statuses}"
                                             th:value="${s}"
 
                                             th:text="${
-                                                s.name() == 'YES' ? '✅ Да' :
-                                                (s.name() == 'NO' ? '❌ Не' : '➖ -----')
+                                                s.name() == 'YES' ? '✅ Готов' :
+                                                (s.name() == 'NO' ? '❌ Не' : '📝 Бележка / в процес')
                                             }"
 
                                             th:selected="${s == c.statistics2}">
                                     </option>
 
                                 </select>
+
+                                <div class="input-group input-group-sm">
+                                    <input type="text"
+                                           name="note"
+                                           class="form-control"
+                                           placeholder="Докъде е стигнал / какво липсва..."
+                                           th:value="${c.workedNote}">
+                                    <button type="submit" class="btn btn-outline-primary" title="Запази бележката">
+                                        💾
+                                    </button>
+                                </div>
 
                             </form>
 

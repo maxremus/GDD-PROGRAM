@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body style="margin:0;padding:0;background:#f4f6fb;font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;padding:24px 0;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="480" cellpadding="0" cellspacing="0"
+                   style="background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08);">
+                <tr>
+                    <td style="background:#dc3545;padding:26px 28px;">
+                        <h2 style="margin:0;color:#ffffff;font-size:20px;">⚠️ Абонаментът е прекратен</h2>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:28px;color:#333333;font-size:15px;line-height:1.6;">
+                        <p>Здравейте, <strong th:text="${officeName}">Кантора ЕООД</strong>!</p>
+                        <p>Вашият абонамент в GDD Program беше прекратен. Достъпът до платените функции е ограничен.</p>
+                        <p>Можете да подновите абонамента си по всяко време от страницата "Абонамент" в системата.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:16px 28px;background:#f4f6fb;color:#999999;font-size:12px;">
+                        Това е автоматично известие от GDD Program. Моля, не отговаряйте на този имейл.
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

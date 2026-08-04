@@ -78,6 +78,7 @@ public class UserController {
     @PostMapping("/office/staff/add")
     public String addStaff(@RequestParam String username,
                            @RequestParam String password,
+                           @RequestParam(required = false) String email,
                            RedirectAttributes redirectAttributes) {
         User currentUser = getCurrentUser();
         if (currentUser == null || currentUser.getOfficeId() == null) {
@@ -89,7 +90,7 @@ public class UserController {
             return "redirect:/office/staff";
         }
         try {
-            userService.addStaffToOffice(username, password, currentUser.getOfficeId());
+            userService.addStaffToOffice(username, password, email, currentUser.getOfficeId());
             redirectAttributes.addFlashAttribute("successMessage",
                 "Служителят '" + username + "' е добавен успешно.");
         } catch (IllegalArgumentException e) {

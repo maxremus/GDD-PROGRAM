@@ -17,6 +17,16 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
     boolean existsByNameAndOfficeId(String name, Long officeId);
     boolean existsByNameAndYearAndOfficeId(String name, Integer year, Long officeId);
 
+    // --- активни (неархивирани) фирми — основните списъци ---
+    List<Company> findByOfficeIdAndArchivedFalse(Long officeId);
+    List<Company> findByOfficeIdAndNameContainingIgnoreCaseAndArchivedFalse(Long officeId, String name);
+    List<Company> findByArchivedFalse();
+    List<Company> findByNameContainingIgnoreCaseAndArchivedFalse(String name);
+
+    // --- архивирани фирми ---
+    List<Company> findByOfficeIdAndArchivedTrue(Long officeId);
+    List<Company> findByArchivedTrue();
+
     // --- запазени за ROLE_ADMIN (системен) ---
     List<Company> findByYear(Integer year);
     boolean existsByName(String name);

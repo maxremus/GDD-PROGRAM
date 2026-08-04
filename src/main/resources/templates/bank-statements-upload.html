@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Качи банково извлечение</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f6fb; }
+        .page-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            color: white; border-radius: 14px;
+            padding: 22px 28px; margin-bottom: 24px;
+        }
+        .card { border: none; border-radius: 14px; box-shadow: 0 2px 16px rgba(0,0,0,.07); }
+        .upload-box {
+            display: block; width: 100%; padding: 40px 20px;
+            border: 3px dashed #0d6efd; border-radius: 16px;
+            background: #f0f6ff; text-align: center; cursor: pointer;
+        }
+        .upload-box:hover { background: #e5f0ff; }
+        .upload-box .icon { font-size: 3rem; display: block; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<div class="container py-4" style="max-width: 560px;">
+
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0 fw-bold">🏦 Качи банково извлечение</h5>
+            <small class="opacity-75">CSV или Excel файл, свален от онлайн банкирането</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{/companies}" class="btn btn-light btn-sm">🏢 Начало</a>
+            <a th:href="@{/bank-statements}" class="btn btn-light btn-sm">📋 Извлечения</a>
+        </div>
+    </div>
+
+    <div th:if="${errorMessage}" class="alert alert-danger">
+        ❌ <span th:text="${errorMessage}"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-4">
+            <form th:action="@{/bank-statements/upload}" method="post" enctype="multipart/form-data">
+                <label class="upload-box" for="fileInput">
+                    <span class="icon">📄</span>
+                    <span class="fw-semibold">Избери CSV или Excel файл</span>
+                    <div id="fileName" class="small text-muted mt-1">Няма избран файл</div>
+                </label>
+                <input type="file" id="fileInput" name="file" accept=".csv,.xlsx,.xls,.pdf"
+                       required style="display:none;" onchange="document.getElementById('fileName').textContent = this.files[0]?.name || 'Няма избран файл'">
+
+                <div class="alert alert-light border mt-3 small">
+                    ℹ️ Приема CSV, Excel и PDF файлове. За CSV/Excel системата разпознава колони по ime
+                    (Дата, Сума или Дебит/Кредит, Основание, Контрагент, IBAN). За PDF извлечения — Gemini
+                    AI чете директно таблицата от документа. Ако файлът на банката ти не се разпознае,
+                    кажи на асистента и ще напасне логиката точно към твоя формат.
+                </div>
+                <div class="alert alert-warning mt-2 small">
+                    ⏳ <strong>Важно:</strong> качените транзакции се трият автоматично 24 часа след качването —
+                    прегледай, коригирай фирмата/сметките и износи към Делта Про в рамките на деня.
+                </div>
+
+                <div class="d-grid mt-3">
+                    <button type="submit" class="btn btn-lg text-white"
+                            style="background:linear-gradient(135deg,#0d6efd,#0a58ca);">
+                        ⬆️ Качи и разпознай
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

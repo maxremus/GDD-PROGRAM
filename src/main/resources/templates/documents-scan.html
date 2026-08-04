@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <title>Сканирай документ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f6fb; }
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border-radius: 14px;
+            padding: 22px 28px; margin-bottom: 24px;
+        }
+        .card { border: none; border-radius: 14px; box-shadow: 0 2px 16px rgba(0,0,0,.07); }
+        .capture-btn {
+            display: block; width: 100%; padding: 40px 20px;
+            border: 3px dashed #764ba2; border-radius: 16px;
+            background: #f8f6ff; text-align: center; cursor: pointer;
+            transition: .2s;
+        }
+        .capture-btn:hover { background: #f0ecff; border-color: #5a3d99; }
+        .capture-btn .icon { font-size: 3rem; display: block; margin-bottom: 10px; }
+        .page-thumb { position: relative; display: inline-block; margin: 6px; }
+        .page-thumb img { width: 90px; height: 90px; object-fit: cover; border-radius: 10px; border: 1px solid #ddd; }
+        .page-thumb .remove-btn {
+            position: absolute; top: -8px; right: -8px; background: #dc3545; color: white;
+            border-radius: 50%; width: 22px; height: 22px; border: none; font-size: .75rem; line-height: 1;
+        }
+        .page-thumb .page-num {
+            position: absolute; bottom: 2px; left: 2px; background: rgba(0,0,0,.6); color: white;
+            font-size: .65rem; padding: 1px 5px; border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+<div class="container py-4" style="max-width: 560px;">
+
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0 fw-bold">📷 Сканирай документ</h5>
+            <small class="opacity-75">Снимай фактура/касова бележка — може и от няколко листа</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{/companies}" class="btn btn-light btn-sm">🏢 Начало</a>
+            <a th:href="@{/documents}" class="btn btn-light btn-sm">📄 Документи</a>
+        </div>
+    </div>
+
+    <div id="errorBox" class="alert alert-danger" style="display:none;"></div>
+
+    <div class="card">
+        <div class="card-body p-4">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Фирма (по избор)</label>
+                <select id="companySelect" class="form-select">
+                    <option value="">— без избрана фирма —</option>
+                    <option th:each="c : ${companies}" th:value="${c.id}" th:text="${c.name} + ' (' + ${c.year} + ')'"></option>
+                </select>
+            </div>
+
+            <label class="capture-btn" for="fileInput">
+                <span class="icon">📸</span>
+                <span class="fw-semibold">Снимай лист</span>
+                <div id="hintText">Натисни, за да добавиш първия лист</div>
+            </label>
+            <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none;">
+
+            <div class="text-center my-2 text-muted small">— или —</div>
+
+            <label class="capture-btn" for="pdfInput" style="border-color:#0d6efd;background:#f0f6ff;">
+                <span class="icon">📎</span>
+                <span class="fw-semibold">Прикачи PDF файл</span>
+                <div id="pdfHintText">Ако фактурата вече е готов PDF документ</div>
+            </label>
+            <input type="file" id="pdfInput" accept="application/pdf" style="display:none;">
+
+            <div id="pagesGallery" class="mt-3"></div>
+
+            <button type="button" id="addPageBtn" class="btn btn-outline-secondary btn-sm mt-2" style="display:none;"
+                    onclick="document.getElementById('fileInput').click()">
+                ➕ Добави още лист (за фактури от няколко страници)
+            </button>
+
+            <div class="mb-3 mt-3">
+                <label class="form-label fw-semibold">Бележка (по избор)</label>
+                <textarea id="noteField" class="form-control" rows="2"
+                          placeholder="напр. фактура за м. юли, доставчик X"></textarea>
+            </div>
+
+            <div class="d-grid">
+                <button type="button" id="submitBtn" class="btn btn-lg text-white" disabled
+                        style="background:linear-gradient(135deg,#667eea,#764ba2);" onclick="submitDocument()">
+                    ⬆️ Качи документа
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const uploadUrl = /*[[@{/documents/upload}]]*/ '/documents/upload';
+    const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+    let pages = []; // масив от File обекти (снимки)
+    let pdfFile = null; // избран PDF (взаимно изключващ се със снимките)
+
+    document.getElementById('fileInput').addEventListener('change', function () {
+        if (this.files && this.files[0]) {
+            pdfFile = null; // снимка изключва вече избран PDF
+            pages.push(this.files[0]);
+            renderGallery();
+            this.value = '';
+        }
+    });
+
+    document.getElementById('pdfInput').addEventListener('change', function () {
+        if (this.files && this.files[0]) {
+            pages = []; // PDF изключва вече добавени снимки — документът е или снимки, или PDF
+            pdfFile = this.files[0];
+            renderGallery();
+            this.value = '';
+        }
+    });
+
+    function renderGallery() {
+        const gallery = document.getElementById('pagesGallery');
+        gallery.innerHTML = '';
+
+        if (pdfFile) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'page-thumb';
+            wrapper.style.width = '90px';
+            wrapper.innerHTML =
+                '<div style="width:90px;height:90px;display:flex;align-items:center;justify-content:center;' +
+                'background:#e9f2ff;border-radius:10px;border:1px solid #ddd;font-size:2rem;">📄</div>' +
+                '<button type="button" class="remove-btn" onclick="removePdf()">✕</button>';
+            gallery.appendChild(wrapper);
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'small text-muted mt-1';
+            nameDiv.textContent = pdfFile.name;
+            gallery.appendChild(nameDiv);
+        } else {
+            pages.forEach((file, idx) => {
+                const reader = new FileReader();
+                const wrapper = document.createElement('div');
+                wrapper.className = 'page-thumb';
+                reader.onload = e => {
+                    wrapper.innerHTML =
+                        '<img src="' + e.target.result + '" alt="лист ' + (idx + 1) + '">' +
+                        '<span class="page-num">' + (idx + 1) + '</span>' +
+                        '<button type="button" class="remove-btn" onclick="removePage(' + idx + ')">✕</button>';
+                };
+                reader.readAsDataURL(file);
+                gallery.appendChild(wrapper);
+            });
+        }
+
+        document.getElementById('hintText').textContent = pages.length === 0
+            ? 'Натисни, за да добавиш първия лист'
+            : 'Натисни, за да добавиш още един лист';
+        document.getElementById('addPageBtn').style.display = (pages.length > 0 && !pdfFile) ? 'inline-block' : 'none';
+        document.getElementById('submitBtn').disabled = (pages.length === 0 && !pdfFile);
+    }
+
+    function removePage(idx) {
+        pages.splice(idx, 1);
+        renderGallery();
+    }
+
+    function removePdf() {
+        pdfFile = null;
+        renderGallery();
+    }
+
+    function submitDocument() {
+        if (pages.length === 0 && !pdfFile) return;
+
+        const formData = new FormData();
+        if (pdfFile) {
+            formData.append('files', pdfFile, pdfFile.name);
+        } else {
+            pages.forEach(file => formData.append('files', file, file.name));
+        }
+        const companyId = document.getElementById('companySelect').value;
+        if (companyId) formData.append('companyId', companyId);
+        formData.append('note', document.getElementById('noteField').value);
+
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Качване...';
+
+        fetch(uploadUrl, {
+            method: 'POST',
+            body: formData,
+            headers: { [csrfHeader]: csrfToken }
+        })
+            .then(res => {
+                if (res.redirected) {
+                    window.location.href = res.url;
+                } else if (res.ok) {
+                    window.location.href = /*[[@{/documents}]]*/ '/documents';
+                } else {
+                    throw new Error('Сървърът върна код ' + res.status);
+                }
+            })
+            .catch(err => {
+                const box = document.getElementById('errorBox');
+                box.style.display = 'block';
+                box.textContent = '❌ Грешка при качване: ' + err.message;
+                btn.disabled = false;
+                btn.textContent = '⬆️ Качи документа';
+            });
+    }
+</script>
+</body>
+</html>

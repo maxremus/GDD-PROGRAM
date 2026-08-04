@@ -3,10 +3,12 @@ package org.example.gp.service;
 import org.example.gp.dto.RegisterDto;
 import org.example.gp.entity.User;
 import org.example.gp.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class UserService {
@@ -14,13 +16,19 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final SubscriptionService subscriptionService;
+    private final EmailService emailService;
+
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       SubscriptionService subscriptionService) {
+                       SubscriptionService subscriptionService,
+                       EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.subscriptionService = subscriptionService;
+        this.emailService = emailService;
     }
 
     /**
@@ -45,6 +53,7 @@ public class UserService {
 
         User user = User.builder()
                 .username(dto.getUsername())
+                .email(dto.getEmail())
                 .password(passwordEncoder.encode(dto.getPassword()))
                 .officeId(officeId)
                 .officeName(dto.getOfficeName())
@@ -55,6 +64,12 @@ public class UserService {
 
         // Стартираме 14-дневен безплатен trial автоматично
         subscriptionService.startTrial(officeId);
+
+        emailService.send(dto.getEmail(), "Добре дошли в GDD Program", "welcome-office", Map.of(
+                "username", dto.getUsername(),
+                "officeName", dto.getOfficeName(),
+                "baseUrl", baseUrl
+        ));
     }
 
     /**
@@ -62,7 +77,7 @@ public class UserService {
      * Служителят получава същия officeId като кантората.
      * Проверява лимита за брой служители според плана.
      */
-    public void addStaffToOffice(String username, String password, Long officeId) {
+    public void addStaffToOffice(String username, String password, String email, Long officeId) {
         if (userRepository.findByUsername(username).isPresent()) {
             throw new IllegalArgumentException(
                 "Потребителското ime '" + username + "' вече е заето.");
@@ -75,6 +90,7 @@ public class UserService {
 
         User staff = User.builder()
                 .username(username)
+                .email(email)
                 .password(passwordEncoder.encode(password))
                 .officeId(officeId)
                 .officeName(null)
@@ -82,6 +98,18 @@ public class UserService {
                 .build();
 
         userRepository.save(staff);
+
+        String officeName = userRepository.findByOfficeId(officeId).stream()
+                .filter(u -> "ROLE_OFFICE".equals(u.getRole()) && u.getOfficeName() != null)
+                .map(User::getOfficeName)
+                .findFirst()
+                .orElse("вашата кантора");
+
+        emailService.send(email, "Добавени сте като служител в GDD Program", "welcome-staff", Map.of(
+                "username", username,
+                "officeName", officeName,
+                "baseUrl", baseUrl
+        ));
     }
 
     /** Всички потребители — само за системния ADMIN */

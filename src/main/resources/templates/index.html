@@ -4,6 +4,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Company Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -70,6 +71,10 @@
 
 <body>
     <div class="container mt-4">
+        <div th:if="${param.accessDenied}" class="alert alert-warning alert-dismissible fade show">
+            ⛔ Нямате права за последното действие.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
         <h1 class="mb-4 text-center">🏢 Система за приключване на година</h1>
 
         <div class="d-flex gap-3 align-items-center flex-wrap">
@@ -107,11 +112,41 @@
                 💳 Абонамент
             </a>
 
+            <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')"
+               th:href="@{/documents}"
+               class="btn btn-outline-primary">
+                📷 Документи
+            </a>
+
+            <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')"
+               th:href="@{/bank-statements}"
+               class="btn btn-outline-primary">
+                🏦 Извлечения
+            </a>
+
+            <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')"
+               th:href="@{/companies/archived}"
+               class="btn btn-outline-secondary">
+                📦 Архив
+            </a>
+
             <!-- Системен admin -->
             <a sec:authorize="hasRole('ADMIN')"
                th:href="@{/admin/users}"
                class="btn btn-danger">
                 🔧 Всички кантори
+            </a>
+
+            <a sec:authorize="hasRole('ADMIN')"
+               th:href="@{/admin/audit-logs}"
+               class="btn btn-outline-danger">
+                🧾 Одит
+            </a>
+
+            <a sec:authorize="hasRole('ADMIN')"
+               th:href="@{/admin/backups}"
+               class="btn btn-outline-dark">
+                🗄️ Backup
             </a>
 
             <!-- Потребителско ime + Изход -->
@@ -122,7 +157,8 @@
                     <span sec:authorize="hasRole('OFFICE')" class="badge ms-1 text-white" style="background:#764ba2">КАНТОРА</span>
                     <span sec:authorize="hasRole('USER')"   class="badge bg-primary ms-1">СЛУЖИТЕЛ</span>
                 </span>
-                <form th:action="@{/logout}" method="post" class="mb-0">
+                                <a th:href="@{/change-password}" class="btn btn-outline-secondary btn-sm">🔑 Парола</a>
+<form th:action="@{/logout}" method="post" class="mb-0">
                     <button type="submit" class="btn btn-outline-danger btn-sm">🚪 Изход</button>
                 </form>
             </div>
@@ -412,6 +448,34 @@
                             </div>
                         </div>
 
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h5>📊 Импорт на фирми от Excel (.xlsx)</h5>
+                                <p class="text-muted small mb-2">
+                                    Колони: Ime, Година, Статистика, Чл.73 ал.1, Чл.73 ал.6,
+                                    Годишна декларация, Декларация 6.
+                                    <a th:href="@{/companies/import-excel/template}">⬇️ Изтегли шаблон</a>
+                                </p>
+
+                                <form th:action="@{/companies/import-excel}"
+                                      method="post"
+                                      enctype="multipart/form-data">
+
+                                    <div class="input-group">
+                                        <input type="file"
+                                               name="file"
+                                               class="form-control"
+                                               accept=".xlsx"
+                                               required>
+
+                                        <button class="btn btn-success" type="submit">
+                                            ⬆️ Импорт от Excel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
 
                     <!-- Form Buttons -->
                     <div class="mt-4">
@@ -588,6 +652,13 @@
                                        class="btn btn-sm btn-warning me-1">
                                         ✏️
                                     </a>
+
+                                    <form th:action="@{/companies/archive/{id}(id=${company.id})}"
+                                          method="post"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Да архивирам ли тази фирма? Ще бъде скрита от списъка, но не се трие.');">
+                                        <button type="submit" class="btn btn-sm btn-secondary me-1" title="Архивирай">📦</button>
+                                    </form>
 
                                     <form th:action="@{/companies/delete/{id}(id=${company.id})}"
                                           method="post"

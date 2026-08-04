@@ -56,18 +56,18 @@ public class CompanyImp implements CompanyService {
     public List<Company> getAllCompanies() {
         Long officeId = getCurrentOfficeId();
         if (officeId == null) {
-            return companyRepository.findAll(); // само системен ADMIN
+            return companyRepository.findByArchivedFalse(); // само системен ADMIN
         }
-        return companyRepository.findByOfficeId(officeId);
+        return companyRepository.findByOfficeIdAndArchivedFalse(officeId);
     }
 
     @Override
     public List<Company> searchCompanies(String keyword) {
         Long officeId = getCurrentOfficeId();
         if (officeId == null) {
-            return companyRepository.findByNameContainingIgnoreCase(keyword);
+            return companyRepository.findByNameContainingIgnoreCaseAndArchivedFalse(keyword);
         }
-        return companyRepository.findByOfficeIdAndNameContainingIgnoreCase(officeId, keyword);
+        return companyRepository.findByOfficeIdAndNameContainingIgnoreCaseAndArchivedFalse(officeId, keyword);
     }
 
     @Override
@@ -179,5 +179,40 @@ public class CompanyImp implements CompanyService {
                     .build();
             companyRepository.save(company);
         }
+    }
+
+    @Override
+    public void archiveCompany(Long id) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Фирмата не е намерена: " + id));
+        Long officeId = getCurrentOfficeId();
+        if (officeId != null && !officeId.equals(company.getOfficeId())) {
+            throw new RuntimeException("Нямате права да архивирате тази фирма.");
+        }
+        company.setArchived(true);
+        company.setArchivedAt(java.time.LocalDateTime.now());
+        companyRepository.save(company);
+    }
+
+    @Override
+    public void restoreCompany(Long id) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Фирмата не е намерена: " + id));
+        Long officeId = getCurrentOfficeId();
+        if (officeId != null && !officeId.equals(company.getOfficeId())) {
+            throw new RuntimeException("Нямате права да възстановите тази фирма.");
+        }
+        company.setArchived(false);
+        company.setArchivedAt(null);
+        companyRepository.save(company);
+    }
+
+    @Override
+    public List<Company> getArchivedCompanies() {
+        Long officeId = getCurrentOfficeId();
+        if (officeId == null) {
+            return companyRepository.findByArchivedTrue();
+        }
+        return companyRepository.findByOfficeIdAndArchivedTrue(officeId);
     }
 }

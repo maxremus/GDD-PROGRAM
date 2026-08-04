@@ -30,7 +30,7 @@ public class SubscriptionController {
 
     // GET /subscription — страница с планове и текущ статус
     @GetMapping("/subscription")
-    public String subscriptionPage(Model model) {
+    public String subscriptionPage(@RequestParam(required = false) Boolean expired, Model model) {
         User user = getCurrentUser();
         if (user == null || user.getOfficeId() == null) {
             return "redirect:/companies";
@@ -38,9 +38,17 @@ public class SubscriptionController {
 
         Subscription sub = subscriptionService.getByOfficeId(user.getOfficeId());
         long daysLeft = subscriptionService.daysLeftInTrial(user.getOfficeId());
+        long periodDaysLeft = subscriptionService.daysLeftInPeriod(user.getOfficeId());
+        boolean hasAccess = subscriptionService.hasAccess(user.getOfficeId());
+        String accessMessage = subscriptionService.getAccessDeniedMessage(user.getOfficeId());
 
         model.addAttribute("subscription", sub);
         model.addAttribute("daysLeft", daysLeft);
+        model.addAttribute("periodDaysLeft", periodDaysLeft);
+        model.addAttribute("hasAccess", hasAccess);
+        model.addAttribute("accessMessage", accessMessage);
+        model.addAttribute("expired", Boolean.TRUE.equals(expired) || !hasAccess);
+        model.addAttribute("officeName", user.getOfficeName());
         model.addAttribute("plans", PlanType.values());
         return "subscription";
     }
@@ -63,6 +71,9 @@ public class SubscriptionController {
             String checkoutUrl = subscriptionService.createCheckoutSession(
                     user.getOfficeId(), plan, null);
             return "redirect:" + checkoutUrl;
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/subscription";
         } catch (StripeException e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                 "Грешка при свързване с платежната система: " + e.getMessage());

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Банкови извлечения</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f4f6fb; }
+        .page-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            color: white; border-radius: 14px;
+            padding: 22px 28px; margin-bottom: 24px;
+        }
+        .card { border: none; border-radius: 14px; box-shadow: 0 2px 16px rgba(0,0,0,.07); }
+        table input, table select { font-size: .8rem; padding: 4px 6px; }
+        .status-badge { font-size: .68rem; }
+        .row-in { background: #eafbea; }
+        .row-out { background: #fff4f0; }
+    </style>
+</head>
+<body>
+<div class="container-fluid py-4 px-4">
+
+    <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h4 class="mb-0 fw-bold">🏦 Банкови извлечения</h4>
+            <small class="opacity-75">Прегледай и коригирай преди износ към Делта Про — автоматично се трият 24ч след качване</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{/companies}" class="btn btn-light btn-sm">🏢 Начало</a>
+            <button type="button" class="btn btn-danger btn-sm" onclick="deleteSelected()">🗑️ Изтрий избраните</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="saveAllClicked(event)">💾 Запази всички</button>
+            <button type="button" class="btn btn-success btn-sm" onclick="exportSelected(event)">📤 Експорт (XML)</button>
+            <a th:href="@{/bank-statements/upload}" class="btn btn-light btn-sm">⬆️ Качи извлечение</a>
+        </div>
+    </div>
+
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+        ✅ <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+        ❌ <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between">
+            <span>📋 Транзакции</span>
+            <span class="badge bg-secondary" th:text="${#lists.size(transactions)} + ' общо'"></span>
+        </div>
+        <div class="card-body p-0" style="overflow-x:auto;">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
+                    <th>Дата</th>
+                    <th>Посока</th>
+                    <th>Сума</th>
+                    <th>Контрагент</th>
+                    <th>IBAN</th>
+                    <th>Основание</th>
+                    <th>Фирма</th>
+                    <th>Дебит сметка</th>
+                    <th>Кредит сметка</th>
+                    <th>Статус</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="tx : ${transactions}" th:classappend="${tx.direction.name() == 'IN'} ? 'row-in' : 'row-out'">
+                    <td>
+                        <form th:id="'form-' + ${tx.id}" th:action="@{'/bank-statements/' + ${tx.id} + '/edit'}" method="post" style="display:none;"></form>
+                        <input type="checkbox" class="tx-checkbox" th:value="${tx.id}">
+                    </td>
+                    <td><input type="date" name="transactionDate" th:value="${tx.transactionDate}" th:form="'form-' + ${tx.id}" class="form-control form-control-sm" style="width:130px;"></td>
+                    <td>
+                        <select name="direction" th:form="'form-' + ${tx.id}" class="form-select form-select-sm" style="width:90px;">
+                            <option value="IN" th:selected="${tx.direction.name() == 'IN'}">⬇️ Вход</option>
+                            <option value="OUT" th:selected="${tx.direction.name() == 'OUT'}">⬆️ Изход</option>
+                        </select>
+                    </td>
+                    <td><input type="number" step="0.01" name="amount" th:value="${tx.amount}" th:form="'form-' + ${tx.id}" class="form-control form-control-sm" style="width:90px;"></td>
+                    <td><input type="text" name="counterpartyName" th:value="${tx.counterpartyName}" th:form="'form-' + ${tx.id}" class="form-control form-control-sm" style="width:150px;"></td>
+                    <td><input type="text" name="counterpartyIban" th:value="${tx.counterpartyIban}" th:form="'form-' + ${tx.id}" class="form-control form-control-sm" style="width:150px;"></td>
+                    <td><input type="text" name="description" th:value="${tx.description}" th:form="'form-' + ${tx.id}" class="form-control form-control-sm" style="width:180px;"></td>
+                    <td>
+                        <select name="companyId" th:form="'form-' + ${tx.id}" class="form-select form-select-sm" style="width:150px;">
+                            <option value="">—</option>
+                            <option th:each="c : ${companies}" th:value="${c.id}" th:text="${c.name}"
+                                    th:selected="${tx.companyId != null and tx.companyId == c.id}"></option>
+                        </select>
+                    </td>
+                    <td><input type="text" name="debitAccount" th:value="${tx.debitAccount}" th:form="'form-' + ${tx.id}" class="form-control form-control-sm" style="width:70px;"></td>
+                    <td><input type="text" name="creditAccount" th:value="${tx.creditAccount}" th:form="'form-' + ${tx.id}" class="form-control form-control-sm" style="width:80px;"></td>
+                    <td>
+                        <span class="badge status-badge"
+                              th:classappend="${tx.status.name() == 'NEW' ? 'bg-warning text-dark' : (tx.status.name() == 'REVIEWED' ? 'bg-info text-dark' : 'bg-success')}"
+                              th:text="${tx.status.name() == 'NEW' ? 'Ново' : (tx.status.name() == 'REVIEWED' ? 'Прегледано' : 'Експортирано')}">
+                        </span>
+                    </td>
+                    <td class="d-flex gap-1">
+                        <button type="submit" th:form="'form-' + ${tx.id}" class="btn btn-sm btn-outline-primary" style="font-size:.7rem;">💾</button>
+                        <form th:action="@{'/bank-statements/' + ${tx.id} + '/delete'}" method="post" class="d-inline"
+                              onsubmit="return confirm('Да изтрия ли тази транзакция?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:.7rem;">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(transactions)}">
+                    <td colspan="12" class="text-center text-muted py-4">
+                        Няма качени извлечения. <a th:href="@{/bank-statements/upload}">Качи първото</a>.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const exportUrl = /*[[@{/bank-statements/export-xml}]]*/ '/bank-statements/export-xml';
+    const deleteSelectedUrl = /*[[@{/bank-statements/delete-selected}]]*/ '/bank-statements/delete-selected';
+    const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+    function toggleAll(source) {
+        document.querySelectorAll('.tx-checkbox').forEach(cb => cb.checked = source.checked);
+    }
+
+    function getSelectedIds() {
+        const checked = document.querySelectorAll('.tx-checkbox:checked');
+        if (checked.length === 0) {
+            alert('Моля, изберете поне една транзакция (чекбокс в първата колона), или "избери всички" горе в заглавието.');
+            return null;
+        }
+        return Array.from(checked).map(cb => cb.value);
+    }
+
+    async function saveRow(id) {
+        const form = document.getElementById('form-' + id);
+        if (!form) return;
+        const formData = new FormData(form);
+        await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: { [csrfHeader]: csrfToken }
+        });
+    }
+
+    async function saveAllVisible() {
+        const rows = document.querySelectorAll('.tx-checkbox');
+        for (const cb of rows) {
+            await saveRow(cb.value);
+        }
+    }
+
+    async function saveAllClicked(evt) {
+        const btn = evt.currentTarget;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⏳ Запазвам...';
+        await saveAllVisible();
+        btn.disabled = false;
+        btn.textContent = originalText;
+        window.location.reload();
+    }
+
+    async function exportSelected(evt) {
+        const ids = getSelectedIds();
+        if (!ids) return;
+
+        const btn = evt.currentTarget;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '⏳ Запазвам промените...';
+
+        // Първо запазваме текущите стойности от полетата на избраните редове,
+        // за да не се изнесат стари/дефолтни данни от базата.
+        for (const id of ids) {
+            await saveRow(id);
+        }
+
+        const params = ids.map(id => 'ids=' + encodeURIComponent(id)).join('&');
+        window.location.href = exportUrl + '?' + params;
+    }
+
+    function deleteSelected() {
+        const ids = getSelectedIds();
+        if (!ids) return;
+        if (!confirm('Да изтрия ли ' + ids.length + ' избрани транзакции? Действието не може да се върне.')) return;
+
+        const formData = new URLSearchParams();
+        ids.forEach(id => formData.append('ids', id));
+
+        fetch(deleteSelectedUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                [csrfHeader]: csrfToken
+            },
+            body: formData.toString()
+        }).then(() => window.location.reload());
+    }
+</script>
+</body>
+</html>

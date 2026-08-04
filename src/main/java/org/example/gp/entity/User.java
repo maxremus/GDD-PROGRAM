@@ -26,6 +26,9 @@ public class User {
     @Column(unique = true, nullable = false)
     private String username;
 
+    /** Имейл за известия (регистрация, смяна на парола, абонамент и т.н.) */
+    private String email;
+
     @Column(nullable = false)
     private String password;
 
@@ -34,6 +37,9 @@ public class User {
 
     /** Показно ime на кантората (само за ROLE_OFFICE потребителя) */
     private String officeName;
+
+    /** ЕИК / БУЛСТАТ на кантората (по избор при регистрация) */
+    private String officeEik;
 
     private String role;
 }
