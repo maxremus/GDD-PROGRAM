@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="bg">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,8 +13,10 @@
             max-width:440px; box-shadow:0 25px 70px rgba(0,0,0,.4); }
         .icon { font-size:4rem; margin-bottom:16px; }
     </style>
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
 </head>
 <body>
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
 <div class="card">
     <div class="icon">⚠️</div>
     <h3 class="fw-bold mb-3">Плащането беше отказано</h3>

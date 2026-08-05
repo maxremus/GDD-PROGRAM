@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="bg">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -95,8 +96,10 @@
             font-size: .82rem; color: #92400e; margin-top: 16px;
         }
     </style>
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
 </head>
 <body>
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
 
 <div class="container">
 <div class="card-custom">

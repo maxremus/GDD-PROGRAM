@@ -18,8 +18,10 @@
         .table th { font-size: .8rem; color: #666; text-transform: uppercase; letter-spacing: .03em; font-weight: 600; }
         .table td { vertical-align: middle; }
     </style>
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
 </head>
 <body>
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
 <div class="container-fluid py-4 px-4">
 
     <div class="page-header d-flex justify-content-between align-items-center">

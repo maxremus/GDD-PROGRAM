@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Company Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
     <style>
         .stats-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -70,100 +71,13 @@
 </head>
 
 <body>
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
     <div class="container mt-4">
         <div th:if="${param.accessDenied}" class="alert alert-warning alert-dismissible fade show">
             ⛔ Нямате права за последното действие.
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <h1 class="mb-4 text-center">🏢 Система за приключване на година</h1>
-
-        <div class="d-flex gap-3 align-items-center flex-wrap">
-
-            <form action="/companies/worked" method="get">
-                <button type="submit" class="btn btn-success">
-                    ✔ Работени фирми
-                </button>
-            </form>
-
-            <a th:href="@{/companies/vat}" class="btn btn-primary">
-                Калкулатор - ДДС
-            </a>
-
-            <a th:href="@{/companies/experience}" class="btn btn-secondary">
-                📅 Трудов стаж
-            </a>
-
-            <a th:href="@{/companies/net-to-gross}"
-               class="btn btn-success">
-                💰 Брутна → Нетна Заплата
-            </a>
-
-            <!-- Собственик на кантора — управление на служители -->
-            <a sec:authorize="hasAnyRole('OFFICE','ADMIN')"
-               th:href="@{/office/staff}"
-               class="btn btn-warning">
-                👥 Служители
-            </a>
-
-            <!-- Абонамент — за кантора и служители -->
-            <a sec:authorize="hasAnyRole('OFFICE','USER')"
-               th:href="@{/subscription}"
-               class="btn btn-info">
-                💳 Абонамент
-            </a>
-
-            <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')"
-               th:href="@{/documents}"
-               class="btn btn-outline-primary">
-                📷 Документи
-            </a>
-
-            <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')"
-               th:href="@{/bank-statements}"
-               class="btn btn-outline-primary">
-                🏦 Извлечения
-            </a>
-
-            <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')"
-               th:href="@{/companies/archived}"
-               class="btn btn-outline-secondary">
-                📦 Архив
-            </a>
-
-            <!-- Системен admin -->
-            <a sec:authorize="hasRole('ADMIN')"
-               th:href="@{/admin/users}"
-               class="btn btn-danger">
-                🔧 Всички кантори
-            </a>
-
-            <a sec:authorize="hasRole('ADMIN')"
-               th:href="@{/admin/audit-logs}"
-               class="btn btn-outline-danger">
-                🧾 Одит
-            </a>
-
-            <a sec:authorize="hasRole('ADMIN')"
-               th:href="@{/admin/backups}"
-               class="btn btn-outline-dark">
-                🗄️ Backup
-            </a>
-
-            <!-- Потребителско ime + Изход -->
-            <div class="ms-auto d-flex align-items-center gap-2">
-                <span class="text-muted small">
-                    👤 <span sec:authentication="name"></span>
-                    <span sec:authorize="hasRole('ADMIN')"  class="badge bg-danger ms-1">ADMIN</span>
-                    <span sec:authorize="hasRole('OFFICE')" class="badge ms-1 text-white" style="background:#764ba2">КАНТОРА</span>
-                    <span sec:authorize="hasRole('USER')"   class="badge bg-primary ms-1">СЛУЖИТЕЛ</span>
-                </span>
-                                <a th:href="@{/change-password}" class="btn btn-outline-secondary btn-sm">🔑 Парола</a>
-<form th:action="@{/logout}" method="post" class="mb-0">
-                    <button type="submit" class="btn btn-outline-danger btn-sm">🚪 Изход</button>
-                </form>
-            </div>
-
-        </div>
 
 <br>
         <!-- Statistics Section -->

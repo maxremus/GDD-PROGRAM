@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <title>Трудов стаж калкулатор</title>
@@ -37,8 +38,10 @@
             margin-bottom: 10px;
         }
     </style>
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
 </head>
 <body>
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
 
 <div class="container mt-5">
 

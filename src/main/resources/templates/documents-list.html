@@ -34,8 +34,10 @@
         .doc-note { font-size: .8rem; color: #555; margin-top: 4px; }
         .status-badge { font-size: .7rem; }
     </style>
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
 </head>
 <body>
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
 <div class="container-fluid py-4 px-4">
 
     <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">

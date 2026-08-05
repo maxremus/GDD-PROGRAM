@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="bg">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,8 +22,10 @@
         .upload-box:hover { background: #e5f0ff; }
         .upload-box .icon { font-size: 3rem; display: block; margin-bottom: 10px; }
     </style>
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
 </head>
 <body>
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
 <div class="container py-4" style="max-width: 560px;">
 
     <div class="page-header d-flex justify-content-between align-items-center">

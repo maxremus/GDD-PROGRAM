@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+
+<!--/* ============================================================
+     Споделено ляво меню — включва се във всяка автентикирана страница с:
+     <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+     Изисква <link rel="stylesheet" th:href="@{/css/sidebar.css}"> в <head>.
+     ============================================================ */-->
+<div th:fragment="sidebar">
+
+    <!-- Бутон за мобилно меню -->
+    <button type="button" class="sidebar-toggle" onclick="gddToggleSidebar()">☰</button>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="gddCloseSidebar()"></div>
+
+    <nav class="app-sidebar" id="appSidebar">
+
+        <div class="sidebar-brand">
+            <a th:href="@{/companies}">🏢 GDD Program</a>
+        </div>
+
+        <div class="sidebar-section">
+            <a th:href="@{/companies}" class="sidebar-link">🏢 Фирми</a>
+            <a th:href="@{/companies/worked}" class="sidebar-link">✔️ Работени фирми</a>
+            <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')" th:href="@{/documents}" class="sidebar-link">📷 Документи</a>
+            <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')" th:href="@{/bank-statements}" class="sidebar-link">🏦 Извлечения</a>
+            <a sec:authorize="hasAnyRole('OFFICE','USER','ADMIN')" th:href="@{/companies/archived}" class="sidebar-link">📦 Архив</a>
+        </div>
+
+        <div class="sidebar-divider">Калкулатори</div>
+        <div class="sidebar-section">
+            <a th:href="@{/companies/vat}" class="sidebar-link">🧮 Калкулатор ДДС</a>
+            <a th:href="@{/companies/experience}" class="sidebar-link">📅 Трудов стаж</a>
+            <a th:href="@{/companies/net-to-gross}" class="sidebar-link">💰 Брутна → Нетна</a>
+        </div>
+
+        <div class="sidebar-divider" sec:authorize="hasAnyRole('OFFICE','USER')">Кантора</div>
+        <div class="sidebar-section">
+            <a sec:authorize="hasAnyRole('OFFICE','ADMIN')" th:href="@{/office/staff}" class="sidebar-link">👥 Служители</a>
+            <a sec:authorize="hasAnyRole('OFFICE','USER')" th:href="@{/subscription}" class="sidebar-link">💳 Абонамент</a>
+        </div>
+
+        <div class="sidebar-divider" sec:authorize="hasRole('ADMIN')">Администрация</div>
+        <div class="sidebar-section" sec:authorize="hasRole('ADMIN')">
+            <a th:href="@{/admin/users}" class="sidebar-link">🔧 Всички кантори</a>
+            <a th:href="@{/admin/audit-logs}" class="sidebar-link">🧾 Одит</a>
+            <a th:href="@{/admin/backups}" class="sidebar-link">🗄️ Backup</a>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                👤 <span sec:authentication="name">потребител</span>
+                <span sec:authorize="hasRole('ADMIN')" class="badge bg-danger ms-1">ADMIN</span>
+                <span sec:authorize="hasRole('OFFICE')" class="badge ms-1 text-white" style="background:#764ba2">КАНТОРА</span>
+                <span sec:authorize="hasRole('USER')" class="badge bg-primary ms-1">СЛУЖИТЕЛ</span>
+            </div>
+            <a th:href="@{/change-password}" class="sidebar-link small">🔑 Парола</a>
+            <form th:action="@{/logout}" method="post" class="mb-0">
+                <button type="submit" class="sidebar-link small logout-btn">🚪 Изход</button>
+            </form>
+        </div>
+
+    </nav>
+
+    <script>
+        function gddToggleSidebar() {
+            document.getElementById('appSidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('show');
+        }
+        function gddCloseSidebar() {
+            document.getElementById('appSidebar').classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('show');
+        }
+    </script>
+
+</div>
+
+</body>
+</html>
