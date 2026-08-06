@@ -33,12 +33,6 @@
             <h4 class="mb-0 fw-bold">👥 Служители на кантора</h4>
             <small class="opacity-75" th:text="${officeName}"></small>
         </div>
-        <div class="d-flex gap-2">
-            <a th:href="@{/companies}" class="btn btn-light btn-sm">🏢 Фирми</a>
-            <form th:action="@{/logout}" method="post" class="mb-0">
-                <button type="submit" class="btn btn-outline-light btn-sm">🚪 Изход</button>
-            </form>
-        </div>
     </div>
 
     <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">

@@ -124,11 +124,7 @@
     </div>
 
     <!-- TOP ACTIONS -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-
-        <a href="/companies" class="btn btn-outline-dark btn-custom">
-            ⬅ Назад
-        </a>
+    <div class="d-flex justify-content-center align-items-center mb-4">
 
         <form action="/companies/copy-month" method="post" class="m-0">
 
@@ -139,18 +135,6 @@
                 📅 Нов месец
             </button>
         </form>
-
-        <div class="d-flex align-items-center gap-2">
-            <span class="text-muted small">
-                👤 <span sec:authentication="name"></span>
-                <span sec:authorize="hasRole('ADMIN')"  class="badge bg-danger ms-1">ADMIN</span>
-                <span sec:authorize="hasRole('OFFICE')" class="badge ms-1 text-white" style="background:#764ba2">КАНТОРА</span>
-                <span sec:authorize="hasRole('USER')"   class="badge bg-primary ms-1">СЛУЖИТЕЛ</span>
-            </span>
-            <form th:action="@{/logout}" method="post" class="mb-0">
-                <button type="submit" class="btn btn-outline-danger btn-sm">🚪 Изход</button>
-            </form>
-        </div>
 
     </div>
 

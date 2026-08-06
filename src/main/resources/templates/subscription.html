@@ -221,10 +221,6 @@
             <p th:if="${officeName}" th:text="'Кантора: ' + ${officeName}">Кантора</p>
             <p th:unless="${officeName}">Изберете план за вашата счетоводна кантора</p>
         </div>
-        <a th:if="${hasAccess}" th:href="@{/companies}" class="btn btn-back">⬅ Към системата</a>
-        <form th:unless="${hasAccess}" th:action="@{/logout}" method="post" class="m-0" style="position:relative;z-index:1;">
-            <button type="submit" class="btn btn-back">🚪 Изход</button>
-        </form>
     </div>
 
     <div th:if="${errorMessage}" class="alert alert-danger rounded-3 border-0 shadow-sm">
@@ -321,9 +317,6 @@
     <div class="footer-note">
         🔒 Плащанията се обработват сигурно през Stripe.<br>
         Можете да прекратите абонамента си по всяко време.
-        <form th:action="@{/logout}" method="post" class="d-inline">
-            <button type="submit" class="logout-link btn btn-link p-0 border-0">Изход от акаунта</button>
-        </form>
     </div>
 </div>
 </body>

@@ -31,11 +31,6 @@
             <h4 class="mb-0 fw-bold">🗄️ Backup на базата данни</h4>
             <small class="opacity-75">Автоматичен нощен backup + ръчно създаване/сваляне</small>
         </div>
-        <div class="d-flex gap-2">
-            <a th:href="@{/admin/audit-logs}" class="btn btn-light btn-sm">🧾 Одит</a>
-            <a th:href="@{/admin/users}" class="btn btn-light btn-sm">🔧 Системен панел</a>
-            <a th:href="@{/companies}" class="btn btn-light btn-sm">🏢 Начало</a>
-        </div>
     </div>
 
     <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
