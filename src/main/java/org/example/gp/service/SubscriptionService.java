@@ -243,31 +243,58 @@ public class SubscriptionService {
     // -------------------------------------------------------------------------
 
     public void handleCheckoutCompleted(String officeIdStr, String planStr,
-                                        String stripeCustomerId, String stripeSubscriptionId) {
-        Long officeId = Long.valueOf(officeIdStr);
-        PlanType plan = PlanType.valueOf(planStr);
-        validatePlanLimits(officeId, plan);
+                                    String stripeCustomerId, String stripeSubscriptionId) {
 
-        Subscription sub = subscriptionRepository.findByOfficeId(officeId)
-                .orElseGet(() -> Subscription.builder().officeId(officeId).createdAt(LocalDateTime.now()).build());
+    Long officeId = Long.valueOf(officeIdStr);
+    PlanType plan = PlanType.valueOf(planStr);
+    validatePlanLimits(officeId, plan);
 
-        sub.setPlan(plan);
-        sub.setStatus(SubscriptionStatus.ACTIVE);
-        sub.setStripeCustomerId(stripeCustomerId);
-        sub.setStripeSubscriptionId(stripeSubscriptionId);
-        if (sub.getCurrentPeriodEnd() == null) {
-            sub.setCurrentPeriodEnd(LocalDateTime.now().plusMonths(1));
-        }
-        sub.setUpdatedAt(LocalDateTime.now());
+    Subscription sub = subscriptionRepository.findByOfficeId(officeId)
+            .orElseGet(() -> Subscription.builder()
+                    .officeId(officeId)
+                    .createdAt(LocalDateTime.now())
+                    .build());
 
-        subscriptionRepository.save(sub);
+    LocalDateTime now = LocalDateTime.now();
 
-        findOfficeOwner(officeId).ifPresent(owner ->
-                emailService.send(owner.getEmail(), "Абонаментът е активиран", "subscription-active", Map.of(
-                        "officeName", owner.getOfficeName() != null ? owner.getOfficeName() : "вашата кантора",
-                        "planName", plan.name()
-                )));
+    sub.setPlan(plan);
+    sub.setStatus(SubscriptionStatus.ACTIVE);
+    sub.setStripeCustomerId(stripeCustomerId);
+    sub.setStripeSubscriptionId(stripeSubscriptionId);
+
+    // Ако има активен период - добавяме още 1 месец
+    if (sub.getCurrentPeriodEnd() != null
+            && sub.getCurrentPeriodEnd().isAfter(now)) {
+
+        sub.setCurrentPeriodEnd(
+                sub.getCurrentPeriodEnd().plusMonths(1)
+        );
+
+    } else {
+        // Ако няма период или е изтекъл - започваме от днес
+        sub.setCurrentPeriodEnd(now.plusMonths(1));
     }
+
+    sub.setUpdatedAt(now);
+
+    subscriptionRepository.save(sub);
+
+    findOfficeOwner(officeId).ifPresent(owner ->
+            emailService.send(
+                    owner.getEmail(),
+                    "Абонаментът е активиран",
+                    "subscription-active",
+                    Map.of(
+                            "officeName",
+                            owner.getOfficeName() != null
+                                    ? owner.getOfficeName()
+                                    : "вашата кантора",
+                            "planName",
+                            plan.name()
+                    )
+            )
+    );
+}
 
     public void handleSubscriptionUpdated(String stripeSubscriptionId, String stripeStatus,
                                           LocalDateTime currentPeriodEnd) {
